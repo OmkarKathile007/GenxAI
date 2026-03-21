@@ -20,16 +20,6 @@ public class DataLoader implements CommandLineRunner {
     public void run(String... args) throws Exception {
         System.out.println("--- CHECKING PROMPTS ---");
 
-        //  Roadmap Generator (Structured JSON Output)
-//        createPromptIfNotExists(
-//                "roadmap",
-//                1,
-//                "You are a Senior Technical Career Coach. Your goal is to create practical, step-by-step learning roadmaps.",
-//                "Create a detailed {{duration}} roadmap for learning {{topic}}. \n" +
-//                        "Format the response as a JSON object with this structure: \n" +
-//                        "{ \"title\": \"...\", \"phases\": [ { \"week\": \"1-2\", \"topic\": \"...\", \"details\": \"...\" } ] } \n" +
-//                        "Do NOT output markdown code blocks. Output raw JSON only."
-//        );
         createPromptIfNotExists(
                 "roadmap",
                 3, // Version bump
@@ -109,7 +99,7 @@ public class DataLoader implements CommandLineRunner {
                         "Length: {{length}}\n" +
                         "Format: {{format}}\n\n" +
                         "Length behavior:\n" +
-                        "- Follow the user-provided length strictly.\n" +
+                        "- Follow the user-provided strictly.\n" +
                         "- If a word range is given, stay within it.\n" +
                         "- If a single value is given, approximate closely.\n\n" +
                         "Format behavior:\n" +
