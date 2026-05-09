@@ -27,6 +27,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState("");
 
   // Customization State
   const [length, setLength] = useState("medium");

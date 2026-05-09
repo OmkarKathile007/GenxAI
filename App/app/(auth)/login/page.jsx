@@ -5,7 +5,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, Lock, ArrowRight, Loader2, UserCircle } from "lucide-react"; 
+import { User, Lock, ArrowRight, Loader2 } from "lucide-react"; 
+import GoogleSignInButton from "@/components/features/auth/GoogleSignInButton";
 import { useAuth } from "@/components/providers/AuthProvider"; 
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8080";
@@ -15,6 +16,7 @@ export default function LoginPage() {
   const { login } = useAuth(); 
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false); 
   const [formData, setFormData] = useState({
     username: "", 
@@ -39,6 +41,41 @@ export default function LoginPage() {
       setError(err.message === "Bad credentials" ? "Invalid username or password" : err.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async (credential) => {
+    setIsGoogleLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential }),
+      });
+
+      let data;
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        data = await response.json();
+      } else {
+        data = { message: await response.text() };
+      }
+
+      if (!response.ok) {
+        throw new Error(data.message || "Google login failed");
+      }
+
+      if (data.token) {
+        login(data.token);
+        router.push("/onboarding");
+      }
+    } catch (err) {
+      console.error("Google Login Error:", err);
+      setError(err.message || "Google login failed. Please try again.");
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -168,7 +205,7 @@ export default function LoginPage() {
             {/* Primary Sign In Button */}
             <button
               type="submit"
-              disabled={isLoading || isGuestLoading}
+              disabled={isLoading || isGuestLoading || isGoogleLoading}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
             >
               {isLoading ? (
@@ -179,6 +216,23 @@ export default function LoginPage() {
                 </>
               )}
             </button>
+
+            <div className="flex items-center gap-3 text-xs uppercase tracking-wide text-gray-500">
+              <div className="h-px flex-1 bg-white/10" />
+              or
+              <div className="h-px flex-1 bg-white/10" />
+            </div>
+
+            {isGoogleLoading ? (
+              <div className="flex min-h-[44px] items-center justify-center rounded-lg border border-white/10 bg-white/5 text-gray-300">
+                <Loader2 className="h-5 w-5 animate-spin" />
+              </div>
+            ) : (
+              <GoogleSignInButton
+                onCredential={handleGoogleLogin}
+                disabled={isLoading || isGuestLoading}
+              />
+            )}
 
             {/* Guest Login Button */}
             {/* <button
