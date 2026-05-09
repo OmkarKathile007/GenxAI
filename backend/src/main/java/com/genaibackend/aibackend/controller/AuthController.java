@@ -1,6 +1,7 @@
 package com.genaibackend.aibackend.controller;
 
 import com.genaibackend.aibackend.dto.AuthResponse;
+import com.genaibackend.aibackend.dto.GoogleLoginRequest;
 import com.genaibackend.aibackend.dto.LoginRequest;
 import com.genaibackend.aibackend.dto.RegisterRequest;
 import com.genaibackend.aibackend.service.AuthService;
@@ -27,8 +28,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        System.out.println(request.getUsername()+" : "+request.getPassword()+" ");
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(@RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.googleLogin(request));
     }
 }
 
