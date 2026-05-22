@@ -34,17 +34,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
+    private final NotificationService notificationService;
     private final String googleClientId;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
                        AuthenticationManager authenticationManager,
+                       NotificationService notificationService,
                        @Value("${google.client-id:}") String googleClientId) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.authenticationManager = authenticationManager;
+        this.notificationService = notificationService;
         this.googleClientId = googleClientId;
     }
 
@@ -52,6 +55,10 @@ public class AuthService {
         // Validation: Check if user exists
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("Username already exists");
+        }
+
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already exists");
         }
 
         // Map Roles (String -> Enum)
@@ -78,6 +85,7 @@ public class AuthService {
 
         //  Save to DB
         userRepository.save(user);
+        sendFirstLoginNotificationIfNeeded(user);
 
         // Generate Token immediately (so they don't have to login after register)
         String token = generateTokenForUser(user);
@@ -102,6 +110,7 @@ public class AuthService {
         // Convert to Spring UserDetails (minimal version for token)
         // In a real app, you might refactor this conversion to a shared utility method
         String token = generateTokenForUser(user);
+        sendFirstLoginNotificationIfNeeded(user);
 
         return new AuthResponse(token);
     }
@@ -140,7 +149,19 @@ public class AuthService {
             userRepository.save(user);
         }
 
+        sendFirstLoginNotificationIfNeeded(user);
+
         return new AuthResponse(generateTokenForUser(user));
+    }
+
+    private void sendFirstLoginNotificationIfNeeded(User user) {
+        if (user.isFirstLoginNotificationSent()) {
+            return;
+        }
+
+        user.setFirstLoginNotificationSent(true);
+        userRepository.save(user);
+        notificationService.sendFirstLoginWelcomeEmail(user);
     }
 
     private GoogleIdToken.Payload verifyGoogleCredential(String credential) {

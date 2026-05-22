@@ -1,11 +1,6 @@
 package com.genaibackend.aibackend.model;
 
 import jakarta.persistence.*;
-import java.util.Set;
-
-
-
-import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,6 +21,8 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    private Boolean firstLoginNotificationSent = false;
+
     // This creates a separate table "user_roles" in Postgres
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
@@ -44,6 +41,11 @@ public class User {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public boolean isFirstLoginNotificationSent() { return Boolean.TRUE.equals(firstLoginNotificationSent); }
+    public void setFirstLoginNotificationSent(Boolean firstLoginNotificationSent) {
+        this.firstLoginNotificationSent = firstLoginNotificationSent;
+    }
 
     public Set<Role> getRoles() { return roles; }
     public void setRoles(Set<Role> roles) { this.roles = roles; }
