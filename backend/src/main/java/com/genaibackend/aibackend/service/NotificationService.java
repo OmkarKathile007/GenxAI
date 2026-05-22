@@ -101,10 +101,10 @@ public class NotificationService {
                             <!-- Glow orbs -->
                             <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;
                                         background:radial-gradient(circle,rgba(139,92,246,0.4) 0%%,transparent 70%%);
-                                        border-radius:50%;pointer-events:none;"></div>
+                                        border-radius:50%%;pointer-events:none;"></div>
                             <div style="position:absolute;bottom:-30px;left:20px;width:120px;height:120px;
                                         background:radial-gradient(circle,rgba(14,165,233,0.3) 0%%,transparent 70%%);
-                                        border-radius:50%;pointer-events:none;"></div>
+                                        border-radius:50%%;pointer-events:none;"></div>
 
                             <!-- Logo row -->
                             <table role="presentation" width="100%%" cellspacing="0" cellpadding="0">
