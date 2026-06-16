@@ -1,11 +1,14 @@
 import { ProtectedRoute } from '@/components/features/auth';
+import WorkspaceShell from '@/components/features/workspace/WorkspaceShell';
 
 export default function DashboardLayout({
   children,
 }) {
   return (
     <ProtectedRoute>
-      {children}
+      <WorkspaceShell>
+        {children}
+      </WorkspaceShell>
     </ProtectedRoute>
   );
 }
