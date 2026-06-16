@@ -56,7 +56,10 @@ export default function SignupPage() {
         throw new Error(data.message || "Signup failed");
       }
 
-      router.push("/onboarding"); 
+      if (data.token) {
+        login(data.token);
+        router.push("/onboarding");
+      }
       
     } catch (err) {
       setError(err.message);
