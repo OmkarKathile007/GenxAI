@@ -46,6 +46,15 @@ public class AIService {
         }
     }
 
+    /**
+     * Direct one-shot Gemini generation. Reused by the sales/marketing AI
+     * features (e.g. follow-up generator) that build their own prompt rather
+     * than using a stored tool persona.
+     */
+    public String generateText(String prompt) {
+        return callGemini(prompt);
+    }
+
     private String callGemini(String text) {
         try {
             //  Construct the Payload
@@ -57,14 +66,9 @@ public class AIService {
                     }
             );
 
-            //  DEBUG LOGS (Check these in your console!)
             String fullUrl = geminiApiUrl + geminiApiKey;
-            String jsonBody = objectMapper.writeValueAsString(requestBody);
 
-            log.info("--- DEBUG AI REQUEST ---");
-            log.info("URL: {}", fullUrl);
-            log.info("PAYLOAD: {}", jsonBody);
-            log.info("------------------------");
+            log.info("Calling Gemini for prompt with {} characters", text.length());
 
             // Send Request
             String rawResponse = webClient.post()
