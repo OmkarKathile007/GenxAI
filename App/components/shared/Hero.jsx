@@ -34,21 +34,21 @@ function HeroSection() {
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.02] backdrop-blur-md mb-8 ring-1 ring-white/5 shadow-lg shadow-blue-500/10">
           <span className="flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
           <span className="text-xs font-medium text-zinc-300 tracking-wide uppercase">
-            v2.0 Now Available
+            Voice Funnel Workspace
           </span>
         </div>
 
         {/* HEADLINE */}
         <div className="space-y-6 max-w-4xl mx-auto mb-8">
           <h1 className="text-5xl md:text-8xl font-bold tracking-tighter text-white drop-shadow-sm">
-            One Platform. <br />
+            AI Voice Calls. <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-b from-blue-300 via-blue-500 to-purple-600">
-              Endless Possibilities.
+              Qualified Leads.
             </span>
           </h1>
           
           <p className="mx-auto max-w-2xl text-zinc-400 text-lg md:text-xl leading-relaxed">
-            Stop juggling multiple subscriptions. Access the most powerful AI models and tools in a single, unified workspace designed for builders.
+            Build a professional AI calling system that imports targeted contacts, schedules outreach, qualifies leads, and turns every conversation into sales intelligence.
           </p>
         </div>
 
@@ -61,13 +61,13 @@ function HeroSection() {
             onClick={handleGetStarted}
             className="h-12 px-8 rounded-full bg-white text-black hover:bg-zinc-200 font-semibold text-base shadow-[0_4px_14px_0_rgba(255,255,255,0.39)] transition-transform hover:scale-[1.02] active:scale-[0.98]"
           >
-            Get Started Free
+            Create Workspace
           </Button>
           
           <Link href="#features">
             <Button variant="outline" size="lg" className="h-12 px-8 rounded-full border-zinc-800 bg-zinc-900/50 text-white hover:bg-zinc-900 hover:border-zinc-700 transition-all backdrop-blur-sm">
               <Command className="w-4 h-4 mr-2 text-zinc-500" />
-              Explore Features
+              View Workflow
             </Button>
           </Link>
           
@@ -75,7 +75,7 @@ function HeroSection() {
 
         {/* SOCIAL PROOF */}
         <div className="mt-20 pt-10 border-t border-white/5 w-full max-w-4xl opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-           <p className="text-xs text-zinc-500 mb-6 uppercase tracking-widest font-semibold">Powering the next generation of startups</p>
+           <p className="text-xs text-zinc-500 mb-6 uppercase tracking-widest font-semibold">Designed for targeted sales and marketing teams</p>
            <div className="flex justify-center gap-10 opacity-50">
                 <div className="h-6 w-20 bg-zinc-800 rounded animate-pulse" />
                 <div className="h-6 w-20 bg-zinc-800 rounded animate-pulse delay-75" />

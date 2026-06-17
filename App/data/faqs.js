@@ -1,28 +1,27 @@
 export const faqs = [
   {
-    question: "What makes GenXai unique as a career development tool?",
+    question: "What is GenXAI Voice Funnel?",
     answer:
-      "GenXai combines AI-powered career tools to help you advance your career.",
+      "GenXAI Voice Funnel is a business workspace for AI phone outreach, lead qualification, call scheduling, and sales intelligence.",
   },
   {
-    question: "How does GenXai create tailored content?",
+    question: "How does the AI voice agent know what to say?",
     answer:
-      "GenXai learns about your background, experience, and skills during onboarding. It then uses this information to generate cover letters, and email writing. The content is specifically aligned with your professional background and industry standards, making it highly relevant and effective.",
+      "The business profile stores products, services, target audience, FAQs, pricing notes, language, tone, and sales goals. That context becomes the base for campaign scripts.",
   },
   {
-    question: "How accurate and up-to-date are GenXai AI-hub?",
+    question: "Can teams upload targeted lead data?",
     answer:
-      "We update our AI-hub tools response weekly using advanced AI analysis of current market trends.",
+      "Yes. The planned CSV workflow imports contacts, maps fields, validates phone numbers, removes duplicates, and groups leads by campaign source.",
   },
   {
-    question: "Is my data secure with GenXai?",
+    question: "Is my data secure with GenXAI?",
     answer:
-      "Absolutely. We prioritize the security of your professional information. All data is encrypted and securely stored using industry-standard practices. We use Clerk for authentication and never share your personal information with third parties.",
+      "Business data is stored per authenticated workspace. The implementation is being built with business-level ownership so contacts, campaigns, calls, and insights stay scoped to the correct account.",
   },
-  
   {
-    question: "Can I edit the AI-generated content?",
+    question: "What analysis comes from calls?",
     answer:
-      "Yes! While GenXai generates high-quality initial content, you have full control to edit and customize all other content.",
+      "Calls will produce transcript summaries, lead scores, intent level, objections, pain points, urgency, budget signals, and recommended follow-up actions.",
   },
 ];

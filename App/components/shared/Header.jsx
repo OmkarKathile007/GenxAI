@@ -33,7 +33,7 @@ const Header = () => {
           className="flex items-center gap-3 group"
         >
           <span className="text-3xl font-semibold text-white tracking-tight hover:opacity-90 transition-opacity">
-            GenxAI
+            GenXAI Voice Funnel
           </span>
         </Link>
 
@@ -62,7 +62,7 @@ const Header = () => {
             <div className="hidden md:flex items-center gap-3">
                
                {/* 1. Dashboard/User Icon */}
-               <Link href="/onboarding">
+               <Link href="/dashboard">
                 <Button 
                   variant="ghost" 
                   size="icon"
@@ -84,7 +84,7 @@ const Header = () => {
               </Button>
 
               {/* 3. Enter Hub Button (Visible ONLY when logged in) */}
-              <Link href="/onboarding">
+              <Link href="/dashboard">
                 <Button 
                   className="group relative px-6 bg-white text-black hover:bg-zinc-200 border border-transparent font-semibold transition-all duration-300 overflow-hidden rounded-full md:rounded-md"
                 >
@@ -92,7 +92,7 @@ const Header = () => {
                   <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] bg-gradient-to-r from-transparent via-black/10 to-transparent transition-transform duration-1000" />
                   
                   <span className="relative flex items-center gap-2">
-                    Enter Hub <ChevronRight className="w-3 h-3 text-black/60" />
+                    Dashboard <ChevronRight className="w-3 h-3 text-black/60" />
                   </span>
                 </Button>
               </Link>
