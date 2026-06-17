@@ -9,3 +9,6 @@
 
 # OS
 .DS_Store
+
+# Local secrets (Vapi / Twilio keys)
+local.properties

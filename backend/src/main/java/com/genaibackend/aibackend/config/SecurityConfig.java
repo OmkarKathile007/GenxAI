@@ -56,6 +56,8 @@ public class SecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/api/ai/**").permitAll()
                         .requestMatchers("/api/roadmaps/**").permitAll()
+                        .requestMatchers("/api/vapi/webhook").permitAll()
+                        .requestMatchers("/api/invite/**").permitAll()
                         .requestMatchers("/ping").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
                         .anyRequest().authenticated()
