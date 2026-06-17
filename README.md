@@ -8,6 +8,10 @@
 
 ![Landing Page](App/public/images/landing.png)
 ![Landing Page](App/public/images/genxhub.png)
+![Text Summarizer](App/public/images/summarize.png)
+![Roadmap1](App/public/images/roadmp1.png)
+![Roadmap2](App/public/images/roadmap.png)
+![codeconvert](App/public/images/code.png)
 *(The modern Bento Grid interface connecting all AI tools)*
 
 ---
@@ -53,6 +57,8 @@ AI models often "hallucinate" or add conversational fluff (e.g., *"Here is your 
 * Stateless authentication ensures scalability across distributed container instances.
 
 ---
+
+
 
 ## 🛠 Key Features
 
