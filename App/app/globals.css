@@ -119,3 +119,98 @@ body {
 .hero-image.scrolled{
   transform: rotateX(0deg) scale(1) translateY(40px);
 }
+
+/* ============================================================
+   Voice Funnel — Aurora Glass design system
+   Restrained, hand-built surfaces. No gradient slop.
+   ============================================================ */
+@layer components {
+  /* Frosted glass surface. Layered: hairline top light + depth shadow. */
+  .glass {
+    @apply relative rounded-2xl border border-white/[0.08] bg-white/[0.025] shadow-glass backdrop-blur-xl;
+  }
+  /* Slightly brighter panel for primary content blocks. */
+  .glass-panel {
+    @apply relative rounded-2xl border border-white/[0.09] bg-gradient-to-b from-white/[0.05] to-white/[0.02] shadow-glass backdrop-blur-2xl;
+  }
+  /* Interactive card: subtle lift + emerald edge on hover. */
+  .glass-card {
+    @apply glass transition-[transform,box-shadow,border-color] duration-300 ease-out;
+  }
+  .glass-card:hover {
+    @apply -translate-y-0.5 border-emerald-300/25 shadow-glow-soft;
+  }
+  /* Hairline divider that reads on dark glass. */
+  .hairline {
+    @apply border-white/[0.07];
+  }
+}
+
+@layer utilities {
+  /* Tabular figures for metric readouts — gives the "instrument" feel. */
+  .nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "cv01" 1;
+    letter-spacing: -0.01em;
+  }
+  .text-balance { text-wrap: balance; }
+}
+
+/* Aurora field: sits behind the workspace. Two slow-drifting color wells
+   over a near-black base. Kept low-opacity so content stays legible. */
+.aurora-field {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 60rem at 8% -10%, rgba(16,185,129,0.10), transparent 60%),
+    radial-gradient(50rem 50rem at 95% 0%, rgba(34,211,238,0.08), transparent 55%),
+    #07080b;
+}
+.aurora-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  opacity: 0.5;
+  will-change: transform;
+}
+.aurora-blob--emerald {
+  width: 42rem; height: 42rem;
+  top: -14rem; left: -10rem;
+  background: radial-gradient(circle at 30% 30%, rgba(16,185,129,0.55), transparent 65%);
+}
+.aurora-blob--cyan {
+  width: 38rem; height: 38rem;
+  top: -8rem; right: -12rem;
+  background: radial-gradient(circle at 60% 40%, rgba(34,211,238,0.40), transparent 65%);
+}
+.aurora-blob--violet {
+  width: 34rem; height: 34rem;
+  bottom: -16rem; left: 30%;
+  background: radial-gradient(circle at 50% 50%, rgba(129,140,248,0.30), transparent 65%);
+}
+/* Fine grain so flat fills don't band — the difference between "designed" and "AI". */
+.aurora-grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Custom scrollbar — thin, glassy, unobtrusive. */
+* { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.10);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); background-clip: padding-box; }
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blob { animation: none !important; }
+}

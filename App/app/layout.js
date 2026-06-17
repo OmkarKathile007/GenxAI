@@ -6,17 +6,17 @@ import { Toaster } from "sonner";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthProvider } from "@/components/providers/AuthProvider"; // Import your custom provider
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata = {
-  title: "GenXai - One Platform for AI-tools",
-  description: "Access the most powerful AI models and tools in a single workspace.",
+  title: "GenXAI Voice Funnel",
+  description: "AI voice calling, lead qualification, and sales intelligence for targeted business outreach.",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={`${inter.variable} font-sans`}>
        
         <AuthProvider>
           <ThemeProvider

@@ -20,10 +20,10 @@ export default function Home() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center mb-16 space-y-4">
             <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white">
-              Supercharge your workflow
+              Turn phone conversations into revenue data
             </h2>
             <p className="text-gray-400 max-w-2xl mx-auto text-lg">
-              Everything you need to accelerate your career growth, built into one powerful dashboard.
+              Import targeted contacts, launch AI calling campaigns, and analyze every lead conversation from one workspace.
             </p>
           </div>
 
@@ -53,10 +53,10 @@ export default function Home() {
         <div className="container mx-auto px-4 md:px-6 py-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-white/10">
             {[
-              { label: "AI Tools", value: "6+" },
-              { label: "Faster Workflow", value: "30%" },
-              { label: "Success Rate", value: "95%" },
-              { label: "Support", value: "24/7" },
+              { label: "Voice Campaigns", value: "24/7" },
+              { label: "Lead Fields", value: "15+" },
+              { label: "Call Signals", value: "10+" },
+              { label: "Workspace", value: "B2B" },
             ].map((stat, i) => (
               <div key={i} className="pl-4 first:pl-0">
                 <h3 className="text-3xl md:text-4xl font-bold text-white mb-1">{stat.value}</h3>
@@ -72,7 +72,7 @@ export default function Home() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="text-center max-w-3xl mx-auto mb-20">
             <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">How it works</h2>
-            <p className="text-gray-400 text-lg">Simple setup. Massive impact.</p>
+            <p className="text-gray-400 text-lg">A structured workflow for targeted sales and marketing teams.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto relative">
@@ -98,7 +98,7 @@ export default function Home() {
       <section id='testimonials' className="w-full py-24 bg-gradient-to-b from-zinc-900 to-black">
         <div className="container mx-auto px-4 md:px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-16">
-            Loved by Developers & Professionals
+            Built for sales and marketing operators
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
@@ -147,10 +147,10 @@ export default function Home() {
         
         <div className="container relative z-10 mx-auto px-4 text-center max-w-3xl">
           <h2 className="text-4xl md:text-5xl font-bold text-white tracking-tight mb-6">
-            Ready to build the future?
+            Ready to build your voice funnel?
           </h2>
           <p className="text-xl text-blue-100/80 mb-10">
-            Join thousands of professionals accelerating their career with GenXAI today.
+            Create a business workspace, prepare your target contacts, and start building AI-powered acquisition.
           </p>
           <Link href="/onboarding">
             <Button size="lg" className="h-14 px-10 rounded-full bg-white text-blue-900 hover:bg-gray-100 font-bold text-lg shadow-xl shadow-blue-900/20">
