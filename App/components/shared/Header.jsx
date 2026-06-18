@@ -33,7 +33,7 @@ const Header = () => {
           className="flex items-center gap-3 group"
         >
           <span className="text-3xl font-semibold text-white tracking-tight hover:opacity-90 transition-opacity">
-            GenXAI Voice Funnel
+            GenxAI 
           </span>
         </Link>
 

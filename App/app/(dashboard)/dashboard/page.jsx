@@ -112,7 +112,7 @@ export default function DashboardPage() {
 
             <p className="mt-3 text-sm leading-7 text-zinc-400 md:text-base">
               Targeted contacts, AI phone-call campaigns, qualification insights, follow-ups, and
-              sales analysis — one command center for a single business.
+              sales analysis one command center for a single business.
             </p>
 
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
