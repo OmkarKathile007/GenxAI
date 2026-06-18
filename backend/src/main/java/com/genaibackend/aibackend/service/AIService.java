@@ -25,11 +25,14 @@ public class AIService {
     private final WebClient webClient;
     private final PromptService promptService;
     private final ObjectMapper objectMapper;
+    private final UsageService usageService;
 
-    public AIService(WebClient.Builder webClient, PromptService promptService, ObjectMapper objectMapper) {
+    public AIService(WebClient.Builder webClient, PromptService promptService, ObjectMapper objectMapper,
+                     UsageService usageService) {
         this.webClient = webClient.build();
         this.promptService = promptService;
         this.objectMapper = objectMapper;
+        this.usageService = usageService;
     }
 
     public String executeTool(String toolName, String jsonInput) {
@@ -52,6 +55,8 @@ public class AIService {
      * than using a stored tool persona.
      */
     public String generateText(String prompt) {
+        // Free-tier hard cap on AI generations (throws 429 when exhausted).
+        usageService.consumeAi();
         return callGemini(prompt);
     }
 

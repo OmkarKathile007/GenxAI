@@ -54,6 +54,7 @@ public class VapiCallService {
     private final InviteRepository inviteRepository;
     private final InviteService inviteService;
     private final BusinessRepository businessRepository;
+    private final UsageService usageService;
 
     public VapiCallService(WebClient.Builder webClientBuilder,
                            ObjectMapper objectMapper,
@@ -62,7 +63,8 @@ public class VapiCallService {
                            VoiceCallRepository voiceCallRepository,
                            InviteRepository inviteRepository,
                            InviteService inviteService,
-                           BusinessRepository businessRepository) {
+                           BusinessRepository businessRepository,
+                           UsageService usageService) {
         this.webClient = webClientBuilder.build();
         this.objectMapper = objectMapper;
         this.contactService = contactService;
@@ -71,6 +73,7 @@ public class VapiCallService {
         this.inviteRepository = inviteRepository;
         this.inviteService = inviteService;
         this.businessRepository = businessRepository;
+        this.usageService = usageService;
     }
 
     public boolean isConfigured() {
@@ -88,6 +91,9 @@ public class VapiCallService {
         if (contact.getPhone() == null || contact.getPhone().isBlank()) {
             throw new IllegalStateException("Contact has no phone number to call.");
         }
+
+        // Free-tier hard cap: reserve a call credit (throws 429 when exhausted).
+        usageService.consumeVapiCall(username);
 
         VoiceCall call = new VoiceCall();
         call.setOwner(contact.getOwner());
@@ -109,6 +115,11 @@ public class VapiCallService {
                 .findFirstByOwnerUsernameOrderByCreatedAtDesc(contact.getOwner().getUsername())
                 .orElse(null);
         Map<String, Object> overrides = buildAssistantOverrides(business, contact);
+        // Free-tier per-call duration cap (e.g. 30s). Always applied when limits
+        // are on, even if there is no business profile to personalize the agent.
+        if (usageService.isEnabled()) {
+            overrides.put("maxDurationSeconds", usageService.getMaxCallSeconds());
+        }
         if (!overrides.isEmpty()) {
             payload.put("assistantOverrides", overrides);
         }
@@ -304,15 +315,9 @@ public class VapiCallService {
         return overrides;
     }
 
-    /** Map a friendly per-business voice choice to a Vapi voice (Azure neural). */
+    /** Map a friendly per-business voice choice to a Vapi voice. */
     private Map<String, Object> resolveVoice(String agentVoice) {
-        String choice = agentVoice == null ? "" : agentVoice.trim().toLowerCase();
-        String voiceId;
-        if (choice.contains("hindi") && choice.contains("male")) voiceId = "hi-IN-MadhurNeural";
-        else if (choice.contains("hindi")) voiceId = "hi-IN-SwaraNeural";
-        else if (choice.contains("male")) voiceId = "en-IN-PrabhatNeural";
-        else voiceId = "en-IN-NeerjaNeural"; // default: Indian English female
-        return Map.of("provider", "azure", "voiceId", voiceId);
+        return VoiceCatalog.resolve(agentVoice);
     }
 
     private String buildFirstMessage(Business business, Contact contact) {
