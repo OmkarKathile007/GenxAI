@@ -7,28 +7,33 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // Check local storage ONLY once when the app starts
+    // Hydrate auth state from storage once on app start.
     const storedToken = localStorage.getItem("token");
     if (storedToken) {
       setToken(storedToken);
     }
-    setLoading(false); // <--- NEW: We are done checking
+    setLoading(false);
   }, []);
 
-  const login = (newToken) => {
+  /**
+   * Persist the token and navigate to the post-auth destination.
+   * Callers pass only the token; the single redirect happens here so pages
+   * never double-navigate.
+   */
+  const login = (newToken, redirectTo = "/onboarding") => {
     localStorage.setItem("token", newToken);
     setToken(newToken);
-    router.push("/onboarding");
+    router.replace(redirectTo);
   };
 
   const logout = () => {
     localStorage.removeItem("token");
     setToken(null);
-    router.push("/");
+    router.replace("/login");
   };
 
   return (
