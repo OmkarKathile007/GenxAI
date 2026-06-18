@@ -246,13 +246,7 @@ public class ConsultationService {
     }
 
     private Map<String, Object> resolveVoice(String agentVoice) {
-        String choice = agentVoice == null ? "" : agentVoice.trim().toLowerCase();
-        String voiceId;
-        if (choice.contains("hindi") && choice.contains("male")) voiceId = "hi-IN-MadhurNeural";
-        else if (choice.contains("hindi")) voiceId = "hi-IN-SwaraNeural";
-        else if (choice.contains("male")) voiceId = "en-IN-PrabhatNeural";
-        else voiceId = "en-IN-NeerjaNeural";
-        return Map.of("provider", "azure", "voiceId", voiceId);
+        return VoiceCatalog.resolve(agentVoice);
     }
 
     private void appendField(StringBuilder p, String label, String value) {
