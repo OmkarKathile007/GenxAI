@@ -2,67 +2,71 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { User, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
+import { User, Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
+
 import GoogleSignInButton from "@/components/features/auth/GoogleSignInButton";
 import { useAuth } from "@/components/providers/AuthProvider";
+import {
+  registerRequest,
+  googleAuthRequest,
+  authErrorMessage,
+  isValidEmail,
+  isValidPassword,
+  PASSWORD_MIN,
+} from "@/lib/auth";
 
 export default function SignupPage() {
-  const router = useRouter();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     password: "",
+    confirmPassword: "",
   });
   const [error, setError] = useState("");
 
-
-  const BACKEND_URL=process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8080";
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (error) setError("");
+  };
+
+  const validate = () => {
+    if (!formData.fullName.trim()) return "Enter your full name.";
+    if (!isValidEmail(formData.email)) return "Enter a valid email address.";
+    if (!isValidPassword(formData.password))
+      return `Password must be at least ${PASSWORD_MIN} characters.`;
+    if (formData.password !== formData.confirmPassword) return "Passwords do not match.";
+    return "";
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const validationError = validate();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsLoading(true);
     setError("");
-
     try {
-      
-      const payload = {
-        username: formData.email, // <--- Key Fix: Email is now the username
-        email: formData.email,
-        password: formData.password
-      };
-
-      const response = await fetch(`${BACKEND_URL}/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const email = formData.email.trim();
+      const data = await registerRequest({
+        username: email, // backend uses email as the username
+        email,
+        password: formData.password,
+        fullName: formData.fullName.trim(),
       });
-
-      let data;
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
+      if (data?.token) {
+        login(data.token); // single redirect handled by AuthProvider
       } else {
-        data = { message: await response.text() };
+        setError("Unexpected response from the server. Please try again.");
       }
-
-      if (!response.ok) {
-        throw new Error(data.message || "Signup failed");
-      }
-
-      if (data.token) {
-        login(data.token);
-        router.push("/onboarding");
-      }
-      
     } catch (err) {
-      setError(err.message);
+      setError(authErrorMessage(err, "Sign-up failed. Please try again."));
     } finally {
       setIsLoading(false);
     }
@@ -71,109 +75,135 @@ export default function SignupPage() {
   const handleGoogleSignup = async (credential) => {
     setIsGoogleLoading(true);
     setError("");
-
     try {
-      const response = await fetch(`${BACKEND_URL}/auth/google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential }),
-      });
-
-      let data;
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = { message: await response.text() };
-      }
-
-      if (!response.ok) {
-        throw new Error(data.message || "Google signup failed");
-      }
-
-      if (data.token) {
-        login(data.token);
-        router.push("/onboarding");
-      }
+      const data = await googleAuthRequest(credential);
+      if (data?.token) login(data.token);
     } catch (err) {
-      console.error("Google Signup Error:", err);
-      setError(err.message || "Google signup failed. Please try again.");
+      setError(authErrorMessage(err, "Google sign-up failed. Please try again."));
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
+  const busy = isLoading || isGoogleLoading;
+
   return (
-    <div className="min-h-screen w-full bg-[#0a0a0a] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] flex items-center justify-center p-4">
-      <div className="relative w-full max-w-md bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Create Account</h1>
-          <p className="text-gray-400">Join GenxAI today</p>
+    <div className="flex min-h-screen w-full items-center justify-center bg-[#0a0a0a] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] p-4">
+      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-black/40 p-8 shadow-2xl backdrop-blur-xl">
+        <div className="mb-8 text-center">
+          <h1 className="mb-2 text-3xl font-bold text-white">Create your account</h1>
+          <p className="text-gray-400">Start turning calls into customers</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Full Name</label>
+            <label htmlFor="signup-name" className="text-sm font-medium text-gray-300">
+              Full name
+            </label>
             <div className="relative">
               <User className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
               <input
+                id="signup-name"
                 type="text"
                 name="fullName"
+                autoComplete="name"
                 required
                 placeholder="John Doe"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-10 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-10 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 value={formData.fullName}
                 onChange={handleChange}
+                disabled={busy}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Email</label>
+            <label htmlFor="signup-email" className="text-sm font-medium text-gray-300">
+              Email
+            </label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
               <input
+                id="signup-email"
                 type="email"
                 name="email"
+                autoComplete="email"
                 required
                 placeholder="name@example.com"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-10 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-10 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={busy}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Password</label>
+            <label htmlFor="signup-password" className="text-sm font-medium text-gray-300">
+              Password
+            </label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
               <input
-                type="password"
+                id="signup-password"
+                type={showPassword ? "text" : "password"}
                 name="password"
+                autoComplete="new-password"
                 required
-                placeholder="Create a password"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-10 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+                placeholder={`At least ${PASSWORD_MIN} characters`}
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-10 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={busy}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="absolute right-3 top-3 text-gray-500 transition-colors hover:text-gray-300"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="signup-confirm" className="text-sm font-medium text-gray-300">
+              Confirm password
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
+              <input
+                id="signup-confirm"
+                type={showPassword ? "text" : "password"}
+                name="confirmPassword"
+                autoComplete="new-password"
+                required
+                placeholder="Re-enter your password"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-10 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                disabled={busy}
               />
             </div>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+            <div role="alert" className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-center text-sm text-red-400">
               {error}
             </div>
           )}
 
           <button
             type="submit"
-            disabled={isLoading || isGoogleLoading}
-            className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition-all"
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 py-3 font-semibold text-black shadow-lg shadow-emerald-500/25 transition-all hover:from-emerald-400 hover:to-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoading ? <Loader2 className="animate-spin" /> : (
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
               <>
-                Create Account <ArrowRight className="h-5 w-5" />
+                Create account <ArrowRight className="h-5 w-5" />
               </>
             )}
           </button>
@@ -194,7 +224,10 @@ export default function SignupPage() {
         </form>
 
         <div className="mt-8 text-center text-sm text-gray-400">
-          Already have an account? <Link href="/login" className="text-purple-400 hover:text-purple-300">Sign in</Link>
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-emerald-400 transition-colors hover:text-emerald-300">
+            Sign in
+          </Link>
         </div>
       </div>
     </div>

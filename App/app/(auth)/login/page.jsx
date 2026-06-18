@@ -1,44 +1,52 @@
-
-
 "use client";
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { User, Lock, ArrowRight, Loader2 } from "lucide-react"; 
-import GoogleSignInButton from "@/components/features/auth/GoogleSignInButton";
-import { useAuth } from "@/components/providers/AuthProvider"; 
+import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8080";
+import GoogleSignInButton from "@/components/features/auth/GoogleSignInButton";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { loginRequest, googleAuthRequest, authErrorMessage, isValidEmail } from "@/lib/auth";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const { login } = useAuth(); 
-  
+  const { login } = useAuth();
+
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isGuestLoading, setIsGuestLoading] = useState(false); 
-  const [formData, setFormData] = useState({
-    username: "", 
-    password: "",
-  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (error) setError("");
   };
 
-  // Standard Login Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const email = formData.username.trim();
+
+    if (!isValidEmail(email)) {
+      setError("Enter a valid email address.");
+      return;
+    }
+    if (!formData.password) {
+      setError("Enter your password.");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
-
     try {
-      await performLogin(formData.username, formData.password);
+      const data = await loginRequest(email, formData.password);
+      if (data?.token) {
+        login(data.token); // single redirect handled by AuthProvider
+      } else {
+        setError("Unexpected response from the server. Please try again.");
+      }
     } catch (err) {
-      console.error("Login Error:", err);
-      setError(err.message === "Bad credentials" ? "Invalid username or password" : err.message);
+      setError(authErrorMessage(err, "Login failed. Please try again."));
     } finally {
       setIsLoading(false);
     }
@@ -47,172 +55,103 @@ export default function LoginPage() {
   const handleGoogleLogin = async (credential) => {
     setIsGoogleLoading(true);
     setError("");
-
     try {
-      const response = await fetch(`${BACKEND_URL}/auth/google`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credential }),
-      });
-
-      let data;
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = { message: await response.text() };
-      }
-
-      if (!response.ok) {
-        throw new Error(data.message || "Google login failed");
-      }
-
-      if (data.token) {
-        login(data.token);
-        router.push("/onboarding");
-      }
+      const data = await googleAuthRequest(credential);
+      if (data?.token) login(data.token);
     } catch (err) {
-      console.error("Google Login Error:", err);
-      setError(err.message || "Google login failed. Please try again.");
+      setError(authErrorMessage(err, "Google sign-in failed. Please try again."));
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
-  // Guest Login Handler
-  const handleGuestLogin = async () => {
-    setIsGuestLoading(true);
-    setError("");
-
-    try {
-     
-
-      //  A hardcoded guest account 
-       const response = await fetch(`${BACKEND_URL}/auth/login`, { 
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: "guest_user", password: "guest_password_123" }),
-      });
-      
-
-      let data;
-      const contentType = response.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = { message: await response.text() };
-      }
-
-      if (!response.ok) {
-        throw new Error(data.message || "Guest login failed");
-      }
-
-      if (data.token) {
-        login(data.token); 
-        router.push("/onboarding"); 
-      }
-
-    } catch (err) {
-      console.error("Guest Login Error:", err);
-      setError("Unable to sign in as guest. Please try again.");
-    } finally {
-      setIsGuestLoading(false);
-    }
-  };
-
-  // Reusable login logic 
-  const performLogin = async (username, password) => {
-    const payload = { username, password };
-    const response = await fetch(`${BACKEND_URL}/auth/login`, { 
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    let data;
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      data = await response.json();
-    } else {
-      data = { message: await response.text() };
-    }
-
-    if (!response.ok) {
-      throw new Error(data.message || "Invalid username or password");
-    }
-
-    if (data.token) {
-      login(data.token); 
-      router.push("/onboarding"); 
-    }
-  };
+  const busy = isLoading || isGoogleLoading;
 
   return (
-    <div className="min-h-screen w-full bg-[#0a0a0a] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] flex items-center justify-center p-4 ">
-      
-       <div className="relative w-full max-w-md bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Welcome Back</h1>
-          <p className="text-gray-400">Sign in to continue your AI journey</p>
+    <div className="flex min-h-screen w-full items-center justify-center bg-[#0a0a0a] bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] p-4">
+      <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-black/40 p-8 shadow-2xl backdrop-blur-xl">
+        <div className="mb-8 text-center">
+          <h1 className="mb-2 text-3xl font-bold text-white">Welcome back</h1>
+          <p className="text-gray-400">Sign in to your GenXAI workspace</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate>
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-300">Username / Email</label>
+            <label htmlFor="login-email" className="text-sm font-medium text-gray-300">
+              Email
+            </label>
             <div className="relative">
-              <User className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
+              <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
               <input
-                type="text"
+                id="login-email"
+                type="email"
                 name="username"
+                autoComplete="email"
                 required
-                placeholder="Enter your username"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-10 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                placeholder="name@example.com"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-10 py-2.5 text-white transition-all placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 value={formData.username}
                 onChange={handleChange}
+                disabled={busy}
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-sm font-medium text-gray-300">Password</label>
-             { /* Link href should be /forgot-password, but we can change it later when we have that page*/}
-              <Link href="/signup" className="text-xs text-blue-400 hover:text-blue-300 transition-colors">
+            <div className="flex items-center justify-between">
+              <label htmlFor="login-password" className="text-sm font-medium text-gray-300">
+                Password
+              </label>
+              <button
+                type="button"
+                onClick={() => toast.info("Password reset is coming soon. Contact support for help.")}
+                className="text-xs text-emerald-400 transition-colors hover:text-emerald-300"
+              >
                 Forgot password?
-              </Link>
+              </button>
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
               <input
-                type="password"
+                id="login-password"
+                type={showPassword ? "text" : "password"}
                 name="password"
+                autoComplete="current-password"
                 required
                 placeholder="••••••••"
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-10 py-2.5 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-10 py-2.5 text-white transition-all placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={busy}
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="absolute right-3 top-3 text-gray-500 transition-colors hover:text-gray-300"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
             </div>
           </div>
 
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+            <div role="alert" className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-center text-sm text-red-400">
               {error}
             </div>
           )}
 
           <div className="space-y-3">
-            {/* Primary Sign In Button */}
             <button
               type="submit"
-              disabled={isLoading || isGuestLoading || isGoogleLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-semibold py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25"
+              disabled={busy}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 py-3 font-semibold text-black shadow-lg shadow-emerald-500/25 transition-all duration-300 hover:from-emerald-400 hover:to-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  Sign In <ArrowRight className="h-5 w-5" />
+                  Sign in <ArrowRight className="h-5 w-5" />
                 </>
               )}
             </button>
@@ -228,34 +167,14 @@ export default function LoginPage() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               </div>
             ) : (
-              <GoogleSignInButton
-                onCredential={handleGoogleLogin}
-                disabled={isLoading || isGuestLoading}
-              />
+              <GoogleSignInButton onCredential={handleGoogleLogin} disabled={isLoading} />
             )}
-
-            {/* Guest Login Button */}
-            {/* <button
-              type="button"
-              onClick={handleGuestLogin}
-              disabled={isLoading || isGuestLoading}
-              className="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-gray-300 font-semibold py-3 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"
-            >
-              {isGuestLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  <UserCircle className="h-5 w-5" />
-                  Continue as Guest
-                </>
-              )}
-            </button> */}
           </div>
         </form>
 
         <div className="mt-8 text-center text-sm text-gray-400">
-          Don't have an account?{" "}
-          <Link href="/signup" className="text-white hover:text-blue-400 font-medium transition-colors">
+          Don&apos;t have an account?{" "}
+          <Link href="/signup" className="font-medium text-white transition-colors hover:text-emerald-400">
             Sign up for free
           </Link>
         </div>
