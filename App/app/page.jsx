@@ -12,7 +12,7 @@ import { ArrowRight, CheckCircle2 } from "lucide-react";
 export default function Home() {
   return (
     <div className="min-h-screen bg-black text-slate-200 selection:bg-blue-500/30 font-sans">
-      <Headersection />
+      {/* <Headersection /> */}
       <HeroSection />
 
       {/* --- FEATURES SECTION (Bento Grid Style) --- */}
