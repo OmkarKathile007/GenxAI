@@ -11,7 +11,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/roadmaps")
-@CrossOrigin // Allow frontend access
+@CrossOrigin 
 public class RoadmapController {
 
     private final RoadmapService roadmapService;
