@@ -177,7 +177,7 @@ function HeroSection() {
   ];
 
   return (
-    <section className="relative w-full overflow-hidden bg-[#0a0a14] selection:bg-blue-500/30">
+    <section className=" relative w-full overflow-hidden bg-[#0a0a14] selection:bg-blue-500/30">
       {/* BACKGROUND GRID (very subtle) + FADE MASK */}
       <div className="pointer-events-none absolute inset-0 h-full w-full bg-[linear-gradient(to_right,#ffffff05_1px,transparent_1px),linear-gradient(to_bottom,#ffffff05_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_70%_at_70%_10%,#000_50%,transparent_100%)]" />
 

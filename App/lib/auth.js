@@ -41,7 +41,7 @@ export function authErrorMessage(err, fallback = "Something went wrong. Please t
     if (status === 401 || status === 403) return "Invalid email or password.";
     if (status === 409) return "An account with this email already exists.";
     if (msg) return msg;
-    if (status >= 500) return "Our servers had a hiccup. Please try again shortly.";
+    if (status >= 500) return "Our servers are experiencing high traffic. Please try again shortly.";
   }
 
   if (err?.code === "ERR_NETWORK") return "Can't reach the server. Check your connection and try again.";
