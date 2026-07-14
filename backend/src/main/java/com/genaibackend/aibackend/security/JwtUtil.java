@@ -5,11 +5,12 @@ package com.genaibackend.aibackend.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
@@ -20,10 +21,11 @@ import java.util.function.Function;
 @Service
 public class JwtUtil {
 
-    // THE SECRET KEY
-    // In production, this should be in application.properties and VERY long/random.
-    // It must be at least 256 bits (32 chars) for HS256 algorithm.
-    private static final String SECRET_KEY = "mySuperSecretKeyThatIsVeryLongAndSecure123456";
+    // Loaded from configuration (env var JWT_SECRET or local.properties). Must be
+    // at least 256 bits (32 bytes) for HS256. Never hardcode this — a leaked
+    // signing key lets anyone forge tokens for any user.
+    @Value("${jwt.secret:}")
+    private String secretKey;
 
     //  Generate Token
     public String generateToken(UserDetails userDetails) {
@@ -75,9 +77,12 @@ public class JwtUtil {
     }
 
     private Key getSignInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY); // Or just use .getBytes() if raw string
-        // For this example, since SECRET_KEY is simple text, you can also use:
-        // return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        if (secretKey == null || secretKey.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "jwt.secret is not configured or is too short. Set the JWT_SECRET environment "
+                            + "variable (or jwt.secret in local.properties) to a random value of at "
+                            + "least 32 bytes.");
+        }
+        return Keys.hmacShaKeyFor(secretKey.getBytes(StandardCharsets.UTF_8));
     }
 }

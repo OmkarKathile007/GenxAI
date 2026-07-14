@@ -33,9 +33,14 @@ public class RoadmapService {
     }
 
     // Update progress (When user checks a box)
-    public Roadmap updateRoadmap(String roadmapId, String updatedJson) {
+    public Roadmap updateRoadmap(String username, String roadmapId, String updatedJson) {
         Roadmap roadmap = roadmapRepository.findById(roadmapId)
                 .orElseThrow(() -> new RuntimeException("Roadmap not found"));
+
+        // Ownership check: a user may only modify their own roadmap.
+        if (roadmap.getUser() == null || !username.equals(roadmap.getUser().getUsername())) {
+            throw new RuntimeException("Roadmap not found");
+        }
 
         roadmap.setRoadmapJson(updatedJson);
         return roadmapRepository.save(roadmap);

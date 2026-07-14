@@ -37,10 +37,12 @@ public class RoadmapController {
     @PutMapping("/{id}")
     public ResponseEntity<Roadmap> updateProgress(
             @PathVariable String id,
-            @RequestBody Map<String, String> payload
+            @RequestBody Map<String, String> payload,
+            Authentication authentication
     ) {
         // We only need the JSON string from the frontend
-        return ResponseEntity.ok(roadmapService.updateRoadmap(id, payload.get("roadmapJson")));
+        return ResponseEntity.ok(
+                roadmapService.updateRoadmap(authentication.getName(), id, payload.get("roadmapJson")));
     }
 
     //  LIST: Get all saved roadmaps for the user

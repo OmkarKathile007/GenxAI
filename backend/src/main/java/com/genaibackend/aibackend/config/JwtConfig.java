@@ -1,14 +1,8 @@
 package com.genaibackend.aibackend.config;
 
-import com.genaibackend.aibackend.security.JwtUtil;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-@Configuration
-public class JwtConfig {
-
-    @Bean
-    public JwtUtil jwtUtil() {
-        return new JwtUtil();
-    }
-}
+/**
+ * JwtUtil is a component-scanned {@code @Service} so Spring can inject the
+ * {@code jwt.secret} property into it. Defining it manually as a {@code @Bean}
+ * here would call {@code new JwtUtil()} and skip that injection, leaving the
+ * signing key unset — so this class intentionally no longer declares that bean.
+ */

@@ -75,7 +75,7 @@ public class ConsultationService {
         r.setContactName(contact.getFullName());
         r.setBusinessName(business != null ? business.getBusinessName() : "our team");
         r.setAgentName(business != null ? business.getAgentName() : null);
-        r.setAssistantOverrides(buildConsultationOverrides(business, contact));
+        r.setAssistantOverrides(buildConsultationOverrides(business, contact, invite.getToken()));
         return r;
     }
 
@@ -85,7 +85,18 @@ public class ConsultationService {
                 .orElseThrow(() -> new RuntimeException("Invalid invite"));
         Contact contact = invite.getContact();
 
+        if (vapiCallId == null || vapiCallId.isBlank()) {
+            throw new RuntimeException("vapiCallId is required");
+        }
+
         ConsultationSession session = consultationRepository.findByVapiCallId(vapiCallId).orElseGet(ConsultationSession::new);
+
+        // Prevent cross-tenant hijacking: if this call id was already recorded
+        // against a different invite, refuse to re-bind it to this one.
+        if (session.getInviteId() != null && !session.getInviteId().equals(invite.getId())) {
+            throw new RuntimeException("Invalid invite");
+        }
+
         session.setOwner(contact.getOwner());
         session.setContact(contact);
         session.setInviteId(invite.getId());
@@ -96,9 +107,11 @@ public class ConsultationService {
         inviteRepository.save(invite);
 
         session = consultationRepository.save(session);
-        // Best-effort immediate pull (analysis may still be processing).
+        // Best-effort immediate pull (analysis may still be processing). We pass the
+        // invite token so the pull only imports data if Vapi's call metadata proves
+        // the call actually belongs to this invite (client can't forge it).
         try {
-            syncFromVapi(session);
+            syncFromVapi(session, invite.getToken());
         } catch (Exception e) {
             log.warn("Initial consultation sync deferred: {}", e.getMessage());
         }
@@ -121,8 +134,18 @@ public class ConsultationService {
         return session;
     }
 
-    /** Pull transcript, summary, recording and extracted structuredData from Vapi. */
+    /** Owner-initiated sync — the session is already ownership-checked by the caller. */
     private void syncFromVapi(ConsultationSession session) {
+        syncFromVapi(session, null);
+    }
+
+    /**
+     * Pull transcript, summary, recording and extracted structuredData from Vapi.
+     * When {@code expectedInviteToken} is non-null (the public invite path), the
+     * imported call must carry matching metadata.inviteToken — otherwise a caller
+     * could pass another tenant's call id and siphon their transcript/recording.
+     */
+    private void syncFromVapi(ConsultationSession session, String expectedInviteToken) {
         if (session.getVapiCallId() == null || privateKey == null || privateKey.isBlank()) return;
 
         String raw = webClient.get()
@@ -134,6 +157,16 @@ public class ConsultationService {
 
         try {
             JsonNode root = objectMapper.readTree(raw);
+
+            if (expectedInviteToken != null) {
+                String callToken = root.path("metadata").path("inviteToken").asText("");
+                if (!expectedInviteToken.equals(callToken)) {
+                    log.warn("Consultation call {} metadata does not match the invite — skipping import",
+                            session.getVapiCallId());
+                    return;
+                }
+            }
+
             String status = root.path("status").asText("");
             if ("ended".equalsIgnoreCase(status)) {
                 session.setStatus("ENDED");
@@ -156,8 +189,10 @@ public class ConsultationService {
 
     // ---- Per-business consultation prompt / voice / extraction schema ----
 
-    private Map<String, Object> buildConsultationOverrides(Business business, Contact contact) {
+    private Map<String, Object> buildConsultationOverrides(Business business, Contact contact, String inviteToken) {
         Map<String, Object> overrides = new HashMap<>();
+        // Tag the call so we can later prove it belongs to this invite (see syncFromVapi).
+        overrides.put("metadata", Map.of("inviteToken", inviteToken));
         overrides.put("firstMessage", buildFirstMessage(business, contact));
         overrides.put("voice", resolveVoice(business == null ? null : business.getAgentVoice()));
         overrides.put("model", Map.of(

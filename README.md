@@ -8,8 +8,9 @@
 ![Voice Agent](https://img.shields.io/badge/AIVOICEAGENT-7C3AED)
 ![Twilio](https://img.shields.io/badge/Messaging-Twilio-red?logo=twilio)
 
-![Landing Page](App/public/images/landing.png)
-![GenX Hub](App/public/images/genxhub.png)
+![Landing Page](App/public/images/home.png)
+![GenX Hub](App/public/images/dashboard.png)
+![Voice Call Recorded](App/public/images/Recording.png)
 *(The Aurora Glass command center powering the entire voice funnel)*
 
 ---

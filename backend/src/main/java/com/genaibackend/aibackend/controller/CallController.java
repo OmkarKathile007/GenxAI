@@ -55,9 +55,10 @@ public class CallController {
     }
 
     @GetMapping("/contact/{contactId}")
-    public ResponseEntity<List<VoiceCallResponse>> listCallsForContact(@PathVariable String contactId) {
+    public ResponseEntity<List<VoiceCallResponse>> listCallsForContact(Authentication auth,
+                                                                       @PathVariable String contactId) {
         List<VoiceCallResponse> calls = voiceCallRepository
-                .findByContactIdOrderByCreatedAtDesc(contactId).stream()
+                .findByContactIdAndOwnerUsernameOrderByCreatedAtDesc(contactId, auth.getName()).stream()
                 .map(VoiceCallResponse::from)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(calls);

@@ -13,9 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -36,6 +39,9 @@ public class VapiWebhookController {
     @Value("${app.invite.auto-send:false}")
     private boolean autoSendInvite;
 
+    @Value("${vapi.webhook.secret:}")
+    private String webhookSecret;
+
     private final VoiceCallRepository voiceCallRepository;
     private final ContactRepository contactRepository;
     private final InviteService inviteService;
@@ -50,7 +56,23 @@ public class VapiWebhookController {
 
     @PostMapping("/webhook")
     @Transactional
-    public ResponseEntity<Map<String, Object>> handle(@RequestBody JsonNode body) {
+    public ResponseEntity<Map<String, Object>> handle(
+            @RequestHeader(value = "X-Vapi-Secret", required = false) String providedSecret,
+            @RequestBody JsonNode body) {
+
+        // Reject forged webhooks. When a secret is configured, the request must
+        // present a matching X-Vapi-Secret header (set the same value as the
+        // "Server URL Secret" on the Vapi assistant/number).
+        if (webhookSecret != null && !webhookSecret.isBlank()) {
+            if (!constantTimeEquals(webhookSecret, providedSecret)) {
+                log.warn("Rejected Vapi webhook with missing/invalid X-Vapi-Secret");
+                return ResponseEntity.status(401).body(Map.of("received", false));
+            }
+        } else {
+            log.warn("vapi.webhook.secret is not set — webhook is UNAUTHENTICATED. "
+                    + "Set VAPI_WEBHOOK_SECRET to secure it.");
+        }
+
         try {
             JsonNode message = body.path("message");
             String type = message.path("type").asText("");
@@ -154,5 +176,12 @@ public class VapiWebhookController {
     private String firstNonNull(String a, String b) {
         if (a != null && !a.isBlank()) return a;
         return (b != null && !b.isBlank()) ? b : null;
+    }
+
+    private boolean constantTimeEquals(String expected, String provided) {
+        if (provided == null) return false;
+        return MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                provided.getBytes(StandardCharsets.UTF_8));
     }
 }

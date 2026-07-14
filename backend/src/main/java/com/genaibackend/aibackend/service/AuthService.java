@@ -61,20 +61,11 @@ public class AuthService {
             throw new RuntimeException("Email already exists");
         }
 
-        // Map Roles (String -> Enum)
+        // Roles are assigned server-side only. Never trust a client-supplied role
+        // list on registration — doing so would allow privilege escalation (e.g.
+        // self-registering as ADMIN). Everyone who signs up gets USER.
         Set<Role> roles = new HashSet<>();
-        if (request.getRoles() != null) {
-            for (String role : request.getRoles()) {
-                try {
-                    roles.add(Role.valueOf(role.toUpperCase()));
-                } catch (IllegalArgumentException e) {
-                    // Ignore invalid roles or set default
-                    roles.add(Role.USER);
-                }
-            }
-        } else {
-            roles.add(Role.USER); // Default role
-        }
+        roles.add(Role.USER);
 
         //  Create User Object
         User user = new User();

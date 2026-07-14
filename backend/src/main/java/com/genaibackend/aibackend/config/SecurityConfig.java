@@ -54,12 +54,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/api/ai/**").permitAll()
-                        .requestMatchers("/api/roadmaps/**").permitAll()
+                        // Vapi posts call events here (verified by shared secret in the controller).
                         .requestMatchers("/api/vapi/webhook").permitAll()
+                        // Public invite/consultation flow reached by a customer's invite link.
                         .requestMatchers("/api/invite/**").permitAll()
                         .requestMatchers("/ping").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                        // Everything else — including /api/ai/** and /api/roadmaps/** —
+                        // now requires a valid JWT.
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

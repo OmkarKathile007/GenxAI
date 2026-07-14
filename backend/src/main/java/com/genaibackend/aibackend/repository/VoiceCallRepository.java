@@ -16,5 +16,9 @@ public interface VoiceCallRepository extends JpaRepository<VoiceCall, String> {
     @EntityGraph(attributePaths = "contact")
     List<VoiceCall> findByContactIdOrderByCreatedAtDesc(String contactId);
 
+    // Owner-scoped variant so a user can only read calls for their own contacts.
+    @EntityGraph(attributePaths = "contact")
+    List<VoiceCall> findByContactIdAndOwnerUsernameOrderByCreatedAtDesc(String contactId, String username);
+
     Optional<VoiceCall> findByVapiCallId(String vapiCallId);
 }
