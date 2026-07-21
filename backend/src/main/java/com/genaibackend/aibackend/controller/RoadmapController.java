@@ -9,9 +9,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
+// No @CrossOrigin here — allowed origins are governed centrally by the
+// CorsConfigurationSource in SecurityConfig.
 @RestController
 @RequestMapping("/api/roadmaps")
-@CrossOrigin 
 public class RoadmapController {
 
     private final RoadmapService roadmapService;

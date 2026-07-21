@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import apiClient from "@/lib/apiClient";
 import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 import DayCard from "@/components/features/roadmap-generator/DayCard";
 import SpinnerLoad from "@/components/shared/LoadingSpinner";
@@ -186,7 +187,7 @@ const GenAI = () => {
   const pollJobStatus = async (jobId) => {
     const pollInterval = setInterval(async () => {
       try {
-        const { data } = await axios.get(`${BACKEND_URL}/api/ai/job/${jobId}`);
+        const { data } = await apiClient.get(`/api/ai/job/${jobId}`);
 
         if (data.status === "COMPLETED") {
           clearInterval(pollInterval);
@@ -222,11 +223,7 @@ const GenAI = () => {
     setCurrentRoadmapId(null);
 
     try {
-      const { data } = await axios.post(
-        `${BACKEND_URL}/api/ai/roadmap`,
-        { question: question },
-        { headers: { "Content-Type": "application/json" } },
-      );
+      const { data } = await apiClient.post(`/api/ai/roadmap`, { question: question });
 
       if (data.jobId) {
         pollJobStatus(data.jobId);

@@ -2,6 +2,8 @@ package com.genaibackend.aibackend.entity;
 
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.genaibackend.aibackend.model.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -12,6 +14,18 @@ public class Job {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    // The user who submitted this job. Every read of a job's input/response must
+    // be scoped by this — a job holds the user's prompt text and the AI's answer.
+    // Column is nullable so ddl-auto=update can add it to an existing jobs table;
+    // JobService always sets it on create.
+    // Never serialized: this entity is returned straight to the client from
+    // /api/ai/job/{id}, and User carries the password hash. It is also LAZY with
+    // open-in-view=false, so touching it during serialization would fail anyway.
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
 
     @Column(nullable = false)
     private String toolName;
@@ -50,6 +64,10 @@ public class Job {
     // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+
+    @JsonIgnore
+    public User getOwner() { return owner; }
+    public void setOwner(User owner) { this.owner = owner; }
 
     public String getToolName() { return toolName; }
     public void setToolName(String toolName) { this.toolName = toolName; }

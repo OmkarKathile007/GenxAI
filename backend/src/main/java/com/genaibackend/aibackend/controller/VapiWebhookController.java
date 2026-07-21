@@ -60,17 +60,18 @@ public class VapiWebhookController {
             @RequestHeader(value = "X-Vapi-Secret", required = false) String providedSecret,
             @RequestBody JsonNode body) {
 
-        // Reject forged webhooks. When a secret is configured, the request must
-        // present a matching X-Vapi-Secret header (set the same value as the
-        // "Server URL Secret" on the Vapi assistant/number).
-        if (webhookSecret != null && !webhookSecret.isBlank()) {
-            if (!constantTimeEquals(webhookSecret, providedSecret)) {
-                log.warn("Rejected Vapi webhook with missing/invalid X-Vapi-Secret");
-                return ResponseEntity.status(401).body(Map.of("received", false));
-            }
-        } else {
-            log.warn("vapi.webhook.secret is not set — webhook is UNAUTHENTICATED. "
-                    + "Set VAPI_WEBHOOK_SECRET to secure it.");
+        // Reject forged webhooks. This endpoint is public and unauthenticated, so
+        // it must FAIL CLOSED: with no secret configured there is no way to tell a
+        // real Vapi event from an attacker writing arbitrary transcripts and
+        // recording URLs onto a call (and triggering outbound invites).
+        if (webhookSecret == null || webhookSecret.isBlank()) {
+            log.error("vapi.webhook.secret is not set — rejecting webhook. "
+                    + "Set VAPI_WEBHOOK_SECRET (and the matching 'Server URL Secret' in Vapi).");
+            return ResponseEntity.status(503).body(Map.of("received", false));
+        }
+        if (!constantTimeEquals(webhookSecret, providedSecret)) {
+            log.warn("Rejected Vapi webhook with missing/invalid X-Vapi-Secret");
+            return ResponseEntity.status(401).body(Map.of("received", false));
         }
 
         try {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ClipboardCopy, Loader2, Sparkles, PenTool } from "lucide-react";
@@ -34,10 +34,7 @@ const ImproveText = () => {
   const pollJobStatus = async (jobId) => {
     const pollInterval = setInterval(async () => {
       try {
-        const { data } = await axios.get(
-          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/ai/job/${jobId}`,
-          // `${BACKEND_URL}/api/ai/job/${jobId}`,
-        );
+        const { data } = await apiClient.get(`/api/ai/job/${jobId}`);
 
         console.log("Polling...", data.status);
 
@@ -78,12 +75,7 @@ const ImproveText = () => {
 
     try {
       // 1. Submit Job
-      const { data } = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/ai/text`,
-        // `${BACKEND_URL}/api/ai/text`,
-        { text: inputText },
-        { headers: { "Content-Type": "application/json" } },
-      );
+      const { data } = await apiClient.post(`/api/ai/text`, { text: inputText });
 
       // 2. Start Polling
       if (data.jobId) {

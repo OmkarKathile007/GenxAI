@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 import {
   Select,
   SelectContent,
@@ -80,7 +80,7 @@ const CodeConverter = () => {
   const pollJobStatus = async (jobId) => {
     const pollInterval = setInterval(async () => {
       try {
-        const { data } = await axios.get(`${BACKEND_URL}/api/ai/job/${jobId}`);
+        const { data } = await apiClient.get(`/api/ai/job/${jobId}`);
 
         console.log("Polling...", data.status);
 
@@ -120,11 +120,7 @@ const CodeConverter = () => {
         targetLanguage: outputLanguage,
       };
 
-      const { data } = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/ai/convert`,
-        payload,
-        { headers: { "Content-Type": "application/json" } },
-      );
+      const { data } = await apiClient.post(`/api/ai/convert`, payload);
 
       // 2. Start Polling using the Job ID
       if (data.jobId) {

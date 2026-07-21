@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import apiClient from "@/lib/apiClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 
@@ -50,10 +51,7 @@ function App() {
   const pollJobStatus = async (jobId) => {
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/ai/job/${jobId}`,
-        );
-        const jobData = await response.json();
+        const { data: jobData } = await apiClient.get(`/api/ai/job/${jobId}`);
 
         if (jobData.status === "COMPLETED") {
           clearInterval(pollInterval);
@@ -101,17 +99,7 @@ function App() {
         format: format,
       };
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/api/ai/summarize`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        },
-      );
-
-      if (!response.ok) throw new Error(`Server error: ${response.status}`);
-      const data = await response.json();
+      const { data } = await apiClient.post(`/api/ai/summarize`, payload);
 
       if (data.jobId) {
         setStatusMessage("Request Queued. Waiting for AI worker...");

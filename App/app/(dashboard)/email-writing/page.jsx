@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,7 +35,7 @@ const EmailWriter = () => {
   const pollJobStatus = async (jobId) => {
     const pollInterval = setInterval(async () => {
       try {
-        const { data } = await axios.get(`${BACKEND_URL}/api/ai/job/${jobId}`);
+        const { data } = await apiClient.get(`/api/ai/job/${jobId}`);
 
         console.log("Polling...", data.status);
 
@@ -83,11 +83,7 @@ const EmailWriter = () => {
         points: points,
       };
 
-      const { data } = await axios.post(
-        `${BACKEND_URL}/api/ai/email`,
-        payload,
-        { headers: { "Content-Type": "application/json" } },
-      );
+      const { data } = await apiClient.post(`/api/ai/email`, payload);
 
       // 2. Start Polling
       if (data.jobId) {

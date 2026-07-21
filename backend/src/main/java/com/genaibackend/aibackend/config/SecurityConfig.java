@@ -4,6 +4,7 @@ package com.genaibackend.aibackend.config;
 
 import com.genaibackend.aibackend.security.CustomUserDetailsService;
 import com.genaibackend.aibackend.security.JwtAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -24,6 +25,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.genaibackend.aibackend.filter.RateLimitFilter;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -70,15 +72,25 @@ public class SecurityConfig {
         return http.build();
     }
 
+    // Exact origins allowed to call the API, comma-separated. Set APP_CORS_ORIGINS
+    // in production to your real frontend URL(s).
+    //
+    // Do NOT reintroduce a "https://*.vercel.app" pattern here: anyone can deploy
+    // to vercel.app, so that wildcard combined with allowCredentials(true) makes
+    // every attacker-controlled deployment a trusted origin.
+    @Value("${app.cors.allowed-origins:http://localhost:3000}")
+    private String allowedOrigins;
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOriginPatterns(List.of(
-                "http://localhost:3000",
-                "https://*.vercel.app"
-        ));
+        config.setAllowedOrigins(
+                Arrays.stream(allowedOrigins.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .toList());
 
         config.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
