@@ -6,8 +6,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.web.util.HtmlUtils;
+
+import com.genaibackend.aibackend.config.RabbitMQConfig;
+import com.genaibackend.aibackend.dto.EmailEvent;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -16,66 +22,63 @@ import java.util.Map;
 public class NotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationService.class);
-    private static final String BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
-    private final WebClient webClient;
-    private final String brevoApiKey;
+    private final JavaMailSender javaMailSender;
     private final String fromEmail;
     private final String appUrl;
+    private final RabbitTemplate rabbitTemplate;
 
-    public NotificationService(WebClient.Builder webClientBuilder,
-                               @Value("${brevo.api.key:}") String brevoApiKey,
-                               @Value("${brevo.sender.email:}") String fromEmail,
-                               @Value("${app.frontend.url:http://localhost:3000}") String appUrl) {
-        this.webClient = webClientBuilder.build();
-        this.brevoApiKey = brevoApiKey;
+    public NotificationService(JavaMailSender javaMailSender,
+                               @Value("${app.mail.sender:no-reply@genxai.com}") String fromEmail,
+                               @Value("${app.frontend.url:http://localhost:3000}") String appUrl,
+                               RabbitTemplate rabbitTemplate) {
+        this.javaMailSender = javaMailSender;
         this.fromEmail = fromEmail;
         this.appUrl = appUrl;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
-    @Async("emailTaskExecutor")
     public void sendFirstLoginWelcomeEmail(User user) {
-        if (brevoApiKey == null || brevoApiKey.isBlank()) {
-            log.warn("Skipping welcome email — BREVO_API_KEY is not configured");
-            return;
-        }
-        if (fromEmail == null || fromEmail.isBlank()) {
-            log.warn("Skipping welcome email — BREVO_SENDER_EMAIL is not configured");
-            return;
-        }
         if (user.getEmail() == null || user.getEmail().isBlank()) {
-            log.warn("Skipping welcome email for user {} — email is missing", user.getUsername());
+            log.warn("Skipping welcome email event for user {} — email is missing", user.getUsername());
+            return;
+        }
+        
+        EmailEvent event = new EmailEvent();
+        event.setToEmail(user.getEmail());
+        event.setUsername(user.getUsername());
+        event.setType("WELCOME_EMAIL");
+                
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_NAME, RabbitMQConfig.ROUTING_KEY, event);
+        log.info("Published welcome email event for {}", user.getEmail());
+    }
+
+    public void processWelcomeEmailEvent(EmailEvent event) {
+        if (fromEmail == null || fromEmail.isBlank()) {
+            log.warn("Skipping welcome email — sender email is not configured");
             return;
         }
 
-        String displayName = buildDisplayName(user);
+        String displayName = buildDisplayName(event.getUsername());
         String htmlContent = buildWelcomeEmail(displayName, HtmlUtils.htmlEscape(appUrl));
 
-        Map<String, Object> body = Map.of(
-            "sender", Map.of("name", "GenXai", "email", fromEmail),
-            "to", List.of(Map.of("email", user.getEmail())),
-            "subject", "Welcome to GenXai — your AI workspace is ready",
-            "htmlContent", htmlContent
-        );
-
         try {
-            webClient.post()
-                .uri(BREVO_API_URL)
-                .header("api-key", brevoApiKey)
-                .header("Content-Type", "application/json")
-                .bodyValue(body)
-                .retrieve()
-                .toBodilessEntity()
-                .block();
-            log.info("Welcome email sent to {}", user.getEmail());
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail, "GenXai");
+            helper.setTo(event.getToEmail());
+            helper.setSubject("Welcome to GenXai — your AI workspace is ready");
+            helper.setText(htmlContent, true);
+
+            javaMailSender.send(message);
+            log.info("Welcome email sent via SMTP to {}", event.getToEmail());
         } catch (Exception ex) {
-            log.error("Failed to send welcome email to {}", user.getEmail(), ex);
+            log.error("Failed to send welcome email to {}", event.getToEmail(), ex);
         }
     }
 
-    private String buildDisplayName(User user) {
-        if (user.getUsername() == null || user.getUsername().isBlank()) return "there";
-        String username = user.getUsername();
+    private String buildDisplayName(String username) {
+        if (username == null || username.isBlank()) return "there";
         int at = username.indexOf('@');
         String name = at > 0 ? username.substring(0, at) : username;
         return HtmlUtils.htmlEscape(name);
