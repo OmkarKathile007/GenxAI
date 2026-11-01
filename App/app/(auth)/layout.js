@@ -12,7 +12,7 @@ export default function AuthLayout({ children }) {
   useEffect(() => {
     // Already signed in? Don't show the auth screens.
     if (!loading && isLoggedIn) {
-      router.replace("/dashboard");
+      router.replace("/onboarding");
     }
   }, [loading, isLoggedIn, router]);
 

@@ -29,6 +29,13 @@ public class Roadmap {
     @JsonIgnore // infinite recursion in JSON
     private User user;
 
+    // Tenant. Nullable to match the nullable user column above — rows with no
+    // user cannot be attributed to an org. Reads are scoped by this.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    @JsonIgnore
+    private Organization organization;
+
     public Roadmap() {}
 
     @PrePersist
@@ -51,5 +58,8 @@ public class Roadmap {
     public void setRoadmapJson(String roadmapJson) { this.roadmapJson = roadmapJson; }
     public User getUser() { return user; }
     public void setUser(User user) { this.user = user; }
+    @JsonIgnore
+    public Organization getOrganization() { return organization; }
+    public void setOrganization(Organization organization) { this.organization = organization; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

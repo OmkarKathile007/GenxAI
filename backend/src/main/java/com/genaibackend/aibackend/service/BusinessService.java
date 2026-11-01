@@ -5,7 +5,9 @@ import com.genaibackend.aibackend.dto.BusinessProfileResponse;
 import com.genaibackend.aibackend.entity.Business;
 import com.genaibackend.aibackend.model.User;
 import com.genaibackend.aibackend.repository.BusinessRepository;
+import com.genaibackend.aibackend.repository.OrganizationRepository;
 import com.genaibackend.aibackend.repository.UserRepository;
+import com.genaibackend.aibackend.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,18 +18,27 @@ public class BusinessService {
 
     private final BusinessRepository businessRepository;
     private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
+    private final TenantContext tenantContext;
     private final AIService aiService;
 
     public BusinessService(BusinessRepository businessRepository, UserRepository userRepository,
+                           OrganizationRepository organizationRepository, TenantContext tenantContext,
                            AIService aiService) {
         this.businessRepository = businessRepository;
         this.userRepository = userRepository;
+        this.organizationRepository = organizationRepository;
+        this.tenantContext = tenantContext;
         this.aiService = aiService;
     }
 
+    // The business profile belongs to the ORGANIZATION: teammates share one
+    // profile rather than each keeping a private copy. The username parameter
+    // is retained only to record who last edited it.
     @Transactional(readOnly = true)
     public Optional<BusinessProfileResponse> getCurrentBusinessProfile(String username) {
-        return businessRepository.findFirstByOwnerUsernameOrderByCreatedAtDesc(username)
+        return businessRepository
+                .findFirstByOrganizationIdOrderByCreatedAtDesc(tenantContext.requireOrganizationId())
                 .map(BusinessProfileResponse::from);
     }
 
@@ -40,9 +51,13 @@ public class BusinessService {
         User owner = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
 
-        Business business = businessRepository.findFirstByOwnerUsernameOrderByCreatedAtDesc(username)
+        String orgId = tenantContext.requireOrganizationId();
+        Business business = businessRepository.findFirstByOrganizationIdOrderByCreatedAtDesc(orgId)
                 .orElseGet(Business::new);
 
+        // getReferenceById returns a lazy proxy, so this sets the FK without
+        // issuing a SELECT for an organization we already proved access to.
+        business.setOrganization(organizationRepository.getReferenceById(orgId));
         business.setOwner(owner);
         business.setBusinessName(request.getBusinessName().trim());
         business.setIndustry(trimToNull(request.getIndustry()));
@@ -78,7 +93,8 @@ public class BusinessService {
      */
     @Transactional
     public BusinessProfileResponse generateObjectionPlaybook(String username) {
-        Business business = businessRepository.findFirstByOwnerUsernameOrderByCreatedAtDesc(username)
+        Business business = businessRepository
+                .findFirstByOrganizationIdOrderByCreatedAtDesc(tenantContext.requireOrganizationId())
                 .orElseThrow(() -> new RuntimeException("Set up your business profile first."));
 
         StringBuilder p = new StringBuilder();

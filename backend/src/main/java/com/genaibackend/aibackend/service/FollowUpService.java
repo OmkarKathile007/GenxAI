@@ -9,6 +9,7 @@ import com.genaibackend.aibackend.repository.BusinessRepository;
 import com.genaibackend.aibackend.repository.ConsultationSessionRepository;
 import com.genaibackend.aibackend.repository.FollowUpRepository;
 import com.genaibackend.aibackend.repository.VoiceCallRepository;
+import com.genaibackend.aibackend.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,7 @@ public class FollowUpService {
     private final VoiceCallRepository voiceCallRepository;
     private final ConsultationSessionRepository consultationRepository;
     private final BusinessRepository businessRepository;
+    private final TenantContext tenantContext;
     private final InviteService inviteService;
 
     public FollowUpService(AIService aiService,
@@ -44,7 +46,8 @@ public class FollowUpService {
                            VoiceCallRepository voiceCallRepository,
                            ConsultationSessionRepository consultationRepository,
                            BusinessRepository businessRepository,
-                           InviteService inviteService) {
+                           InviteService inviteService,
+                           TenantContext tenantContext) {
         this.aiService = aiService;
         this.twilioService = twilioService;
         this.contactService = contactService;
@@ -53,11 +56,12 @@ public class FollowUpService {
         this.consultationRepository = consultationRepository;
         this.businessRepository = businessRepository;
         this.inviteService = inviteService;
+        this.tenantContext = tenantContext;
     }
 
     @Transactional(readOnly = true)
     public List<FollowUp> list(String username) {
-        return followUpRepository.findByOwnerUsernameOrderByCreatedAtDesc(username);
+        return followUpRepository.findByOrganizationIdOrderByCreatedAtDesc(tenantContext.requireOrganizationId());
     }
 
     @Transactional
@@ -66,15 +70,16 @@ public class FollowUpService {
         String channel = normalizeChannel(channelRaw);
 
         Business business = businessRepository
-                .findFirstByOwnerUsernameOrderByCreatedAtDesc(username).orElse(null);
-        VoiceCall lastCall = first(voiceCallRepository.findByContactIdOrderByCreatedAtDesc(contactId));
-        ConsultationSession lastConsult = first(consultationRepository.findByContactIdOrderByCreatedAtDesc(contactId));
+                .findFirstByOrganizationIdOrderByCreatedAtDesc(contact.getOrganization().getId()).orElse(null);
+        VoiceCall lastCall = first(voiceCallRepository.findByContactIdAndOrganizationIdOrderByCreatedAtDesc(contactId, contact.getOrganization().getId()));
+        ConsultationSession lastConsult = first(consultationRepository.findByContactIdAndOrganizationIdOrderByCreatedAtDesc(contactId, contact.getOrganization().getId()));
         String inviteLink = inviteService.ensureInviteLink(contact);
 
         String prompt = buildPrompt(business, contact, lastCall, lastConsult, channel, inviteLink);
         String message = cleanup(aiService.generateText(prompt));
 
         FollowUp followUp = new FollowUp();
+        followUp.setOrganization(contact.getOrganization());
         followUp.setOwner(contact.getOwner());
         followUp.setContact(contact);
         followUp.setChannel(channel);

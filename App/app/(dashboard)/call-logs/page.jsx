@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/features/workspace/ui";
+import CallRecording from "@/components/features/workspace/CallRecording";
 
 const STATUS_STYLES = {
   QUEUED: "border-zinc-400/20 bg-zinc-400/10 text-zinc-300",
@@ -257,13 +258,8 @@ export default function CallLogsPage() {
 
                   {isOpen && (
                     <div className="space-y-4 border-t border-white/[0.05] bg-black/20 px-5 py-5">
-                      {c.recordingUrl ? (
-                        <div>
-                          <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-500">Recording</p>
-                          <audio controls src={c.recordingUrl} className="w-full max-w-xl">
-                            Your browser does not support audio playback.
-                          </audio>
-                        </div>
+                      {c.vapiCallId && (c.recordingUrl || ended) ? (
+                        <CallRecording callId={c.id} />
                       ) : (
                         <p className="text-sm text-zinc-500">
                           {ended ? "No recording for this call." : "Recording appears after the call ends — hit Sync."}

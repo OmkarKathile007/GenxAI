@@ -26,6 +26,18 @@
 8. [Project Structure](#-project-structure)
 9. [Installation](#-installation)
 
+### Google sign-in configuration
+
+Login and signup use the same Google web OAuth client ID:
+
+- Frontend: set `NEXT_PUBLIC_GOOGLE_CLIENT_ID` in `App/.env.local` (or the frontend deployment's environment).
+- Backend: set `GOOGLE_CLIENT_ID` in the backend environment, or `google.client-id` in the ignored `backend/local.properties`. The backend also accepts `NEXT_PUBLIC_GOOGLE_CLIENT_ID` for compatibility with existing local settings.
+- Both values must match. A backend `GOOGLE_CLIENT_ID` takes precedence over the public setting.
+- In [Google Auth Platform](https://developers.google.com/identity/gsi/web/guides/get-google-api-clientid), register the frontend origin under **Authorized JavaScript origins**, including `http://localhost:3000` for local development and the exact deployed frontend origin for production.
+- Run the backend from `backend/` so it loads `local.properties`. Restart it after changing configuration. Restart/rebuild the frontend after changing its client ID.
+
+Only the public client ID is needed for this Google Identity Services flow; the backend verifies Google's ID token against that ID before issuing an app session.
+
 ---
 
 ## 💡 What is GenXAI Voice Funnel?

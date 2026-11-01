@@ -11,9 +11,17 @@ public interface InviteRepository extends JpaRepository<Invite, String> {
 
     // Fetch the contact eagerly so DTO mapping works with open-in-view disabled.
     @EntityGraph(attributePaths = "contact")
-    List<Invite> findByOwnerUsernameOrderByCreatedAtDesc(String username);
+    List<Invite> findByOrganizationIdOrderByCreatedAtDesc(String organizationId);
 
-    List<Invite> findByContactIdOrderByCreatedAtDesc(String contactId);
+    // Tenant-scoped. Replaces an unscoped findByContactId... that returned
+    // invites for any contact id regardless of tenant.
+    @EntityGraph(attributePaths = "contact")
+    List<Invite> findByContactIdAndOrganizationIdOrderByCreatedAtDesc(String contactId, String organizationId);
 
+    /**
+     * Resolved from the PUBLIC invite link, which has no authenticated user and
+     * therefore no tenant context — the unguessable token is itself the
+     * capability. The tenant is then read off the returned row.
+     */
     Optional<Invite> findByToken(String token);
 }

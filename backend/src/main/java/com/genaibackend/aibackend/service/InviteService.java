@@ -4,6 +4,7 @@ import com.genaibackend.aibackend.entity.Contact;
 import com.genaibackend.aibackend.entity.Invite;
 import com.genaibackend.aibackend.repository.ContactRepository;
 import com.genaibackend.aibackend.repository.InviteRepository;
+import com.genaibackend.aibackend.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,20 +38,23 @@ public class InviteService {
     private final ContactRepository contactRepository;
     private final InviteRepository inviteRepository;
     private final TwilioService twilioService;
+    private final TenantContext tenantContext;
 
     public InviteService(ContactService contactService,
                          ContactRepository contactRepository,
                          InviteRepository inviteRepository,
-                         TwilioService twilioService) {
+                         TwilioService twilioService,
+                         TenantContext tenantContext) {
         this.contactService = contactService;
         this.contactRepository = contactRepository;
         this.inviteRepository = inviteRepository;
         this.twilioService = twilioService;
+        this.tenantContext = tenantContext;
     }
 
     @Transactional(readOnly = true)
     public List<Invite> listInvites(String username) {
-        return inviteRepository.findByOwnerUsernameOrderByCreatedAtDesc(username);
+        return inviteRepository.findByOrganizationIdOrderByCreatedAtDesc(tenantContext.requireOrganizationId());
     }
 
     /**
@@ -60,7 +64,7 @@ public class InviteService {
      */
     @Transactional
     public String ensureInviteLink(Contact contact) {
-        for (Invite existing : inviteRepository.findByContactIdOrderByCreatedAtDesc(contact.getId())) {
+        for (Invite existing : inviteRepository.findByContactIdAndOrganizationIdOrderByCreatedAtDesc(contact.getId(), contact.getOrganization().getId())) {
             if (existing.getUrl() != null && !existing.getUrl().isBlank()) {
                 return existing.getUrl();
             }
@@ -68,6 +72,7 @@ public class InviteService {
         String token = UUID.randomUUID().toString().replace("-", "");
         String url = buildInviteUrl(token);
         Invite invite = new Invite();
+        invite.setOrganization(contact.getOrganization());
         invite.setOwner(contact.getOwner());
         invite.setContact(contact);
         invite.setToken(token);
@@ -96,6 +101,7 @@ public class InviteService {
                 + "Start your quick consultation here: " + url;
 
         Invite invite = new Invite();
+        invite.setOrganization(contact.getOrganization());
         invite.setOwner(contact.getOwner());
         invite.setContact(contact);
         invite.setToken(token);

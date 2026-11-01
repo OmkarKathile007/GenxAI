@@ -30,6 +30,12 @@ public class VoiceCall {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    /** The tenant this row belongs to. All reads are scoped by this. */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
+
+    /** The user who created this row. Authorship only — never authorization. */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
@@ -73,6 +79,9 @@ public class VoiceCall {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+
+    public Organization getOrganization() { return organization; }
+    public void setOrganization(Organization organization) { this.organization = organization; }
 
     public User getOwner() { return owner; }
     public void setOwner(User owner) { this.owner = owner; }

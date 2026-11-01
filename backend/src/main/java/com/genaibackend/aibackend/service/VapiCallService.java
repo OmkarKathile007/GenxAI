@@ -96,6 +96,7 @@ public class VapiCallService {
         usageService.consumeVapiCall(username);
 
         VoiceCall call = new VoiceCall();
+        call.setOrganization(contact.getOrganization());
         call.setOwner(contact.getOwner());
         call.setContact(contact);
         call.setType("QUALIFY");
@@ -112,7 +113,7 @@ public class VapiCallService {
         // and the contact's details personalize the greeting. Skipped if the
         // business hasn't onboarded yet (falls back to the base assistant).
         Business business = businessRepository
-                .findFirstByOwnerUsernameOrderByCreatedAtDesc(contact.getOwner().getUsername())
+                .findFirstByOrganizationIdOrderByCreatedAtDesc(contact.getOrganization().getId())
                 .orElse(null);
         Map<String, Object> overrides = buildAssistantOverrides(business, contact);
         // Free-tier per-call duration cap (e.g. 30s). Always applied when limits
@@ -240,7 +241,7 @@ public class VapiCallService {
         if (contact == null) return;
 
         boolean agreed = Boolean.TRUE.equals(call.getQualified());
-        boolean alreadyInvited = inviteRepository.findByContactIdOrderByCreatedAtDesc(contact.getId())
+        boolean alreadyInvited = inviteRepository.findByContactIdAndOrganizationIdOrderByCreatedAtDesc(contact.getId(), contact.getOrganization().getId())
                 .stream().anyMatch(i -> "SENT".equals(i.getStatus()));
 
         if (agreed && !alreadyInvited) {

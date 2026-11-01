@@ -110,6 +110,21 @@
 
 
 
+		<!--
+			Schema is owned by Flyway, not Hibernate (spring.jpa.hibernate.ddl-auto
+			is 'validate'). Every schema change must ship as a new versioned script
+			in src/main/resources/db/migration. flyway-database-postgresql is a
+			separate module since Flyway 10 and is required for Postgres support.
+		-->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>

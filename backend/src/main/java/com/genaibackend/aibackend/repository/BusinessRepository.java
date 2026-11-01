@@ -7,5 +7,6 @@ import java.util.Optional;
 
 public interface BusinessRepository extends JpaRepository<Business, String> {
 
-    Optional<Business> findFirstByOwnerUsernameOrderByCreatedAtDesc(String username);
+    /** The tenant's business profile — scoped by org, not by whoever created it. */
+    Optional<Business> findFirstByOrganizationIdOrderByCreatedAtDesc(String organizationId);
 }

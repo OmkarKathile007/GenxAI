@@ -22,6 +22,14 @@ public class Job {
     // Never serialized: this entity is returned straight to the client from
     // /api/ai/job/{id}, and User carries the password hash. It is also LAZY with
     // open-in-view=false, so touching it during serialization would fail anyway.
+    // The tenant this job belongs to. Nullable for the same reason owner is:
+    // rows predating the column cannot be attributed to an org. JobService
+    // always sets it on create, and reads are scoped by it.
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private Organization organization;
+
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
@@ -64,6 +72,10 @@ public class Job {
     // Getters and Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
+
+    @JsonIgnore
+    public Organization getOrganization() { return organization; }
+    public void setOrganization(Organization organization) { this.organization = organization; }
 
     @JsonIgnore
     public User getOwner() { return owner; }

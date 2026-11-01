@@ -10,9 +10,15 @@ import java.util.Optional;
 public interface ConsultationSessionRepository extends JpaRepository<ConsultationSession, String> {
 
     @EntityGraph(attributePaths = "contact")
-    List<ConsultationSession> findByOwnerUsernameOrderByCreatedAtDesc(String username);
+    List<ConsultationSession> findByOrganizationIdOrderByCreatedAtDesc(String organizationId);
 
-    List<ConsultationSession> findByContactIdOrderByCreatedAtDesc(String contactId);
+    // Tenant-scoped. Replaces an unscoped findByContactId... that returned
+    // sessions for any contact id regardless of tenant.
+    @EntityGraph(attributePaths = "contact")
+    List<ConsultationSession> findByContactIdAndOrganizationIdOrderByCreatedAtDesc(String contactId, String organizationId);
 
+    Optional<ConsultationSession> findByIdAndOrganizationId(String id, String organizationId);
+
+    /** Resolved from the unauthenticated Vapi webhook; the call id is the capability. */
     Optional<ConsultationSession> findByVapiCallId(String vapiCallId);
 }

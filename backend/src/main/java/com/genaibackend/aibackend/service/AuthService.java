@@ -19,6 +19,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -35,6 +36,7 @@ public class AuthService {
     private final JwtUtil jwtUtil;
     private final AuthenticationManager authenticationManager;
     private final NotificationService notificationService;
+    private final OrganizationService organizationService;
     private final String googleClientId;
 
     public AuthService(UserRepository userRepository,
@@ -42,15 +44,21 @@ public class AuthService {
                        JwtUtil jwtUtil,
                        AuthenticationManager authenticationManager,
                        NotificationService notificationService,
+                       OrganizationService organizationService,
                        @Value("${google.client-id:}") String googleClientId) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.authenticationManager = authenticationManager;
         this.notificationService = notificationService;
+        this.organizationService = organizationService;
         this.googleClientId = googleClientId;
     }
 
+    // Transactional so a user is never committed without an organization: a
+    // user with no membership cannot use any tenant-scoped endpoint and would
+    // need manual repair.
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         // Validation: Check if user exists
         if (userRepository.existsByUsername(request.getUsername())) {
@@ -75,7 +83,12 @@ public class AuthService {
         user.setRoles(roles);
 
         //  Save to DB
-        userRepository.save(user);
+        user = userRepository.save(user);
+
+        // Every user needs a tenant before they can touch any org-scoped
+        // endpoint. Same shape V3 backfilled for pre-existing users.
+        organizationService.provisionPersonalOrganization(user);
+
         sendFirstLoginNotificationIfNeeded(user);
 
         // Generate Token immediately (so they don't have to login after register)
@@ -84,6 +97,7 @@ public class AuthService {
         return new AuthResponse(token);
     }
 
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         //  Authenticate using Spring Security Manager
         // This will verify the username and password automatically
@@ -98,6 +112,11 @@ public class AuthService {
         // We need to fetch the UserDetails again to get the Roles for the token
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
 
+        // Defensive and idempotent: guarantees an org even for an account that
+        // somehow predates or missed the V3 backfill, rather than letting them
+        // hit a confusing 403 on their first real request.
+        organizationService.provisionPersonalOrganization(user);
+
         // Convert to Spring UserDetails (minimal version for token)
         // In a real app, you might refactor this conversion to a shared utility method
         String token = generateTokenForUser(user);
@@ -106,6 +125,7 @@ public class AuthService {
         return new AuthResponse(token);
     }
 
+    @Transactional
     public AuthResponse googleLogin(GoogleLoginRequest request) {
         if (googleClientId == null || googleClientId.isBlank()) {
             throw new RuntimeException("Google login is not configured");
@@ -140,6 +160,7 @@ public class AuthService {
             userRepository.save(user);
         }
 
+        organizationService.provisionPersonalOrganization(user);
         sendFirstLoginNotificationIfNeeded(user);
 
         return new AuthResponse(generateTokenForUser(user));

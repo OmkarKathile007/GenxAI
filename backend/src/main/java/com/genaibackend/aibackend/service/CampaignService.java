@@ -6,7 +6,9 @@ import com.genaibackend.aibackend.entity.Campaign;
 import com.genaibackend.aibackend.model.User;
 import com.genaibackend.aibackend.repository.BusinessRepository;
 import com.genaibackend.aibackend.repository.CampaignRepository;
+import com.genaibackend.aibackend.repository.OrganizationRepository;
 import com.genaibackend.aibackend.repository.UserRepository;
+import com.genaibackend.aibackend.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,21 +25,28 @@ public class CampaignService {
     private final CampaignRepository campaignRepository;
     private final BusinessRepository businessRepository;
     private final UserRepository userRepository;
+    private final OrganizationRepository organizationRepository;
+    private final TenantContext tenantContext;
     private final AIService aiService;
 
     public CampaignService(CampaignRepository campaignRepository,
                            BusinessRepository businessRepository,
                            UserRepository userRepository,
+                           OrganizationRepository organizationRepository,
+                           TenantContext tenantContext,
                            AIService aiService) {
         this.campaignRepository = campaignRepository;
         this.businessRepository = businessRepository;
         this.userRepository = userRepository;
+        this.organizationRepository = organizationRepository;
+        this.tenantContext = tenantContext;
         this.aiService = aiService;
     }
 
     @Transactional(readOnly = true)
     public List<Campaign> list(String username) {
-        return campaignRepository.findByOwnerUsernameOrderByCreatedAtDesc(username);
+        return campaignRepository.findByOrganizationIdOrderByCreatedAtDesc(
+                tenantContext.requireOrganizationId());
     }
 
     @Transactional
@@ -47,12 +56,14 @@ public class CampaignService {
         }
         User owner = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found"));
+        String orgId = tenantContext.requireOrganizationId();
         Business business = businessRepository
-                .findFirstByOwnerUsernameOrderByCreatedAtDesc(username).orElse(null);
+                .findFirstByOrganizationIdOrderByCreatedAtDesc(orgId).orElse(null);
 
         String plan = cleanup(aiService.generateText(buildPrompt(business, req)));
 
         Campaign campaign = new Campaign();
+        campaign.setOrganization(organizationRepository.getReferenceById(orgId));
         campaign.setOwner(owner);
         campaign.setName(req.getName().trim());
         campaign.setProductService(trimToNull(req.getProductService()));
@@ -78,13 +89,16 @@ public class CampaignService {
         campaignRepository.delete(owned(username, id));
     }
 
+    /**
+     * Tenant-scoped fetch. The scoping is now done by the query itself rather
+     * than by a post-fetch if-check, so there is no path that loads a row first
+     * and forgets to verify it. "Not found" is returned for another tenant's
+     * campaign so ids cannot be probed for existence.
+     */
     private Campaign owned(String username, String id) {
-        Campaign c = campaignRepository.findById(id)
+        return campaignRepository
+                .findByIdAndOrganizationId(id, tenantContext.requireOrganizationId())
                 .orElseThrow(() -> new RuntimeException("Campaign not found"));
-        if (c.getOwner() == null || !username.equals(c.getOwner().getUsername())) {
-            throw new RuntimeException("Campaign not found");
-        }
-        return c;
     }
 
     // ---- helpers ----

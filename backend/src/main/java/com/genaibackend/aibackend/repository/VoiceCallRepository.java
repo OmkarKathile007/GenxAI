@@ -9,16 +9,22 @@ import java.util.Optional;
 
 public interface VoiceCallRepository extends JpaRepository<VoiceCall, String> {
 
+    Optional<VoiceCall> findByIdAndOrganizationId(String id, String organizationId);
+
     // Fetch the contact eagerly so DTO mapping works with open-in-view disabled.
     @EntityGraph(attributePaths = "contact")
-    List<VoiceCall> findByOwnerUsernameOrderByCreatedAtDesc(String username);
+    List<VoiceCall> findByOrganizationIdOrderByCreatedAtDesc(String organizationId);
 
+    // Always tenant-scoped. The old unscoped findByContactId... was removed: it
+    // returned every call for a contact id regardless of who owned it, so any
+    // caller that forgot to pre-check ownership leaked another tenant's calls.
     @EntityGraph(attributePaths = "contact")
-    List<VoiceCall> findByContactIdOrderByCreatedAtDesc(String contactId);
+    List<VoiceCall> findByContactIdAndOrganizationIdOrderByCreatedAtDesc(String contactId, String organizationId);
 
-    // Owner-scoped variant so a user can only read calls for their own contacts.
-    @EntityGraph(attributePaths = "contact")
-    List<VoiceCall> findByContactIdAndOwnerUsernameOrderByCreatedAtDesc(String contactId, String username);
-
+    /**
+     * Looked up from the Vapi webhook, which is unauthenticated and therefore
+     * has no tenant context — the vapiCallId itself is the capability. The
+     * tenant is then read off the returned row, never supplied by the caller.
+     */
     Optional<VoiceCall> findByVapiCallId(String vapiCallId);
 }

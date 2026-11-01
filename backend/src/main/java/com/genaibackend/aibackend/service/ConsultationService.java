@@ -10,6 +10,7 @@ import com.genaibackend.aibackend.entity.Invite;
 import com.genaibackend.aibackend.repository.BusinessRepository;
 import com.genaibackend.aibackend.repository.ConsultationSessionRepository;
 import com.genaibackend.aibackend.repository.InviteRepository;
+import com.genaibackend.aibackend.tenant.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,18 +45,21 @@ public class ConsultationService {
     private final ObjectMapper objectMapper;
     private final InviteRepository inviteRepository;
     private final BusinessRepository businessRepository;
+    private final TenantContext tenantContext;
     private final ConsultationSessionRepository consultationRepository;
 
     public ConsultationService(WebClient.Builder webClientBuilder,
                                ObjectMapper objectMapper,
                                InviteRepository inviteRepository,
                                BusinessRepository businessRepository,
-                               ConsultationSessionRepository consultationRepository) {
+                               ConsultationSessionRepository consultationRepository,
+                               TenantContext tenantContext) {
         this.webClient = webClientBuilder.build();
         this.objectMapper = objectMapper;
         this.inviteRepository = inviteRepository;
         this.businessRepository = businessRepository;
         this.consultationRepository = consultationRepository;
+        this.tenantContext = tenantContext;
     }
 
     @Transactional(readOnly = true)
@@ -66,7 +70,7 @@ public class ConsultationService {
         }
         Contact contact = invite.getContact();
         Business business = businessRepository
-                .findFirstByOwnerUsernameOrderByCreatedAtDesc(contact.getOwner().getUsername())
+                .findFirstByOrganizationIdOrderByCreatedAtDesc(contact.getOrganization().getId())
                 .orElse(null);
 
         InviteResolveResponse r = new InviteResolveResponse();
@@ -97,6 +101,7 @@ public class ConsultationService {
             throw new RuntimeException("Invalid invite");
         }
 
+        session.setOrganization(contact.getOrganization());
         session.setOwner(contact.getOwner());
         session.setContact(contact);
         session.setInviteId(invite.getId());
@@ -120,7 +125,7 @@ public class ConsultationService {
 
     @Transactional(readOnly = true)
     public List<ConsultationSession> listConsultations(String username) {
-        return consultationRepository.findByOwnerUsernameOrderByCreatedAtDesc(username);
+        return consultationRepository.findByOrganizationIdOrderByCreatedAtDesc(tenantContext.requireOrganizationId());
     }
 
     @Transactional

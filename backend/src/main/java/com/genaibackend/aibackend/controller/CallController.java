@@ -3,6 +3,7 @@ package com.genaibackend.aibackend.controller;
 import com.genaibackend.aibackend.dto.VoiceCallResponse;
 import com.genaibackend.aibackend.service.VapiCallService;
 import com.genaibackend.aibackend.repository.VoiceCallRepository;
+import com.genaibackend.aibackend.tenant.TenantContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,10 +22,13 @@ public class CallController {
 
     private final VapiCallService vapiCallService;
     private final VoiceCallRepository voiceCallRepository;
+    private final TenantContext tenantContext;
 
-    public CallController(VapiCallService vapiCallService, VoiceCallRepository voiceCallRepository) {
+    public CallController(VapiCallService vapiCallService, VoiceCallRepository voiceCallRepository,
+                          TenantContext tenantContext) {
         this.vapiCallService = vapiCallService;
         this.voiceCallRepository = voiceCallRepository;
+        this.tenantContext = tenantContext;
     }
 
     /** Tells the UI whether outbound calling is configured (so it can disable the button). */
@@ -48,7 +52,7 @@ public class CallController {
     @GetMapping
     public ResponseEntity<List<VoiceCallResponse>> listCalls(Authentication auth) {
         List<VoiceCallResponse> calls = voiceCallRepository
-                .findByOwnerUsernameOrderByCreatedAtDesc(auth.getName()).stream()
+                .findByOrganizationIdOrderByCreatedAtDesc(tenantContext.requireOrganizationId()).stream()
                 .map(VoiceCallResponse::from)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(calls);
@@ -58,7 +62,7 @@ public class CallController {
     public ResponseEntity<List<VoiceCallResponse>> listCallsForContact(Authentication auth,
                                                                        @PathVariable String contactId) {
         List<VoiceCallResponse> calls = voiceCallRepository
-                .findByContactIdAndOwnerUsernameOrderByCreatedAtDesc(contactId, auth.getName()).stream()
+                .findByContactIdAndOrganizationIdOrderByCreatedAtDesc(contactId, tenantContext.requireOrganizationId()).stream()
                 .map(VoiceCallResponse::from)
                 .collect(Collectors.toList());
         return ResponseEntity.ok(calls);
