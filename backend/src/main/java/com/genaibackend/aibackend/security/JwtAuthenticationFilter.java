@@ -1,14 +1,18 @@
 package com.genaibackend.aibackend.security;
 
 
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -17,6 +21,8 @@ import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtUtil jwtUtil;
     private final CustomUserDetailsService userDetailsService;
@@ -35,8 +41,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         //  Check if the request has an Authorization header
         final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String username;
 
         // If no header or doesn't start with "Bearer ", skip this filter
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -45,14 +49,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // Extract the token (Remove "Bearer " prefix)
-        jwt = authHeader.substring(7);
+        authenticate(authHeader.substring(7), request);
 
-        //  Extract username from token
-        // (If extraction fails, JwtUtil will throw an error, handling is implicit for now)
-        username = jwtUtil.extractUsername(jwt);
+        //  Continue the filter chain
+        filterChain.doFilter(request, response);
+    }
 
-        //  If username exists AND the user is not already authenticated in this context
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+    /**
+     * Signs the request in if the token is good. A bad one (expired, signed with an
+     * old key, garbled, or for a deleted user) just leaves the request anonymous.
+     * This filter runs before permitAll, so throwing here would fail public routes
+     * too, including the login a user with an expired token needs. Protected routes
+     * still reject the anonymous request with a 401.
+     */
+    private void authenticate(String jwt, HttpServletRequest request) {
+        try {
+            String username = jwtUtil.extractUsername(jwt);
+
+            //  If username exists AND the user is not already authenticated in this context
+            if (username == null || SecurityContextHolder.getContext().getAuthentication() != null) {
+                return;
+            }
 
             // Load user details from the Database (via our custom service)
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
@@ -74,10 +91,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 //  Update the SecurityContext (The "VIP List")
                 SecurityContextHolder.getContext().setAuthentication(authToken);
             }
+        } catch (JwtException | IllegalArgumentException | UsernameNotFoundException e) {
+            log.debug("Ignoring unusable token on {}: {}", request.getRequestURI(), e.getMessage());
         }
-
-        //  Continue the filter chain
-        filterChain.doFilter(request, response);
     }
 }
 

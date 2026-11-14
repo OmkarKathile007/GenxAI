@@ -27,6 +27,10 @@ public class JwtUtil {
     @Value("${jwt.secret:}")
     private String secretKey;
 
+    /** Kept short on purpose: refresh tokens are what keep people signed in. */
+    @Value("${jwt.access-token-minutes:30}")
+    private long accessTokenMinutes;
+
     //  Generate Token
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
@@ -37,7 +41,7 @@ public class JwtUtil {
                 .setClaims(extraClaims)
                 .setSubject(userDetails.getUsername()) // The "Main" data (username)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)) // 10 Hours
+                .setExpiration(new Date(System.currentTimeMillis() + accessTokenMinutes * 60_000))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256) // Sign it
                 .compact();
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import apiClient from "@/lib/apiClient";
 import apiClient from "@/lib/apiClient";
 import ProtectedRoute from "@/components/features/auth/ProtectedRoute";
 import DayCard from "@/components/features/roadmap-generator/DayCard";
@@ -45,8 +45,6 @@ const GenAI = () => {
   const [savedRoadmaps, setSavedRoadmaps] = useState([]);
   const [currentRoadmapId, setCurrentRoadmapId] = useState(null);
 
-  const BACKEND_URL =
-    process.env.NEXT_PUBLIC_BACKEND_API_URL || "http://localhost:8080";
 
   // FETCH HISTORY ON LOADING ---
   useEffect(() => {
@@ -55,15 +53,7 @@ const GenAI = () => {
 
   const fetchSavedRoadmaps = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
-      const { data } = await axios.get(
-        `${BACKEND_URL}/api/roadmaps/my-roadmaps`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const { data } = await apiClient.get("/api/roadmaps/my-roadmaps");
       setSavedRoadmaps(data);
     } catch (err) {
       console.error("Failed to load history", err);
@@ -74,21 +64,12 @@ const GenAI = () => {
 
   const saveToDatabase = async (aiData, userQuestion) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
-
       const payload = {
         title: userQuestion,
         roadmapJson: JSON.stringify(aiData),
       };
 
-      const { data } = await axios.post(
-        `${BACKEND_URL}/api/roadmaps/save`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const { data } = await apiClient.post("/api/roadmaps/save", payload);
 
       setCurrentRoadmapId(data.id); // ID for future updates
       fetchSavedRoadmaps();
@@ -102,18 +83,11 @@ const GenAI = () => {
     if (!currentRoadmapId) return; // Only update if we have a saved ID
 
     try {
-      const token = localStorage.getItem("token");
       const payload = {
         roadmapJson: JSON.stringify(updatedSchedule),
       };
 
-      await axios.put(
-        `${BACKEND_URL}/api/roadmaps/${currentRoadmapId}`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      await apiClient.put(`/api/roadmaps/${currentRoadmapId}`, payload);
       console.log("Auto-saved changes.");
     } catch (err) {
       console.error("Update failed", err);

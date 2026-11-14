@@ -13,6 +13,9 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -25,11 +28,14 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -37,6 +43,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final NotificationService notificationService;
     private final OrganizationService organizationService;
+    private final RefreshTokenService refreshTokenService;
     private final String googleClientId;
 
     public AuthService(UserRepository userRepository,
@@ -45,6 +52,7 @@ public class AuthService {
                        AuthenticationManager authenticationManager,
                        NotificationService notificationService,
                        OrganizationService organizationService,
+                       RefreshTokenService refreshTokenService,
                        @Value("${google.client-id:}") String googleClientId) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -52,6 +60,7 @@ public class AuthService {
         this.authenticationManager = authenticationManager;
         this.notificationService = notificationService;
         this.organizationService = organizationService;
+        this.refreshTokenService = refreshTokenService;
         this.googleClientId = googleClientId;
     }
 
@@ -91,10 +100,8 @@ public class AuthService {
 
         sendFirstLoginNotificationIfNeeded(user);
 
-        // Generate Token immediately (so they don't have to login after register)
-        String token = generateTokenForUser(user);
-
-        return new AuthResponse(token);
+        // Sign them in immediately (so they don't have to login after register)
+        return startSession(user);
     }
 
     @Transactional
@@ -119,10 +126,10 @@ public class AuthService {
 
         // Convert to Spring UserDetails (minimal version for token)
         // In a real app, you might refactor this conversion to a shared utility method
-        String token = generateTokenForUser(user);
+        AuthResponse session = startSession(user);
         sendFirstLoginNotificationIfNeeded(user);
 
-        return new AuthResponse(token);
+        return session;
     }
 
     @Transactional
@@ -163,7 +170,25 @@ public class AuthService {
         organizationService.provisionPersonalOrganization(user);
         sendFirstLoginNotificationIfNeeded(user);
 
-        return new AuthResponse(generateTokenForUser(user));
+        return startSession(user);
+    }
+
+    /**
+     * Swaps a refresh token for a new one and a fresh login token. Empty means the
+     * user must sign in again. Deliberately not wrapped in this class's own
+     * transaction: revoking a stolen token's family has to commit by itself.
+     */
+    public Optional<AuthResponse> refresh(String refreshToken) {
+        return refreshTokenService.rotate(refreshToken)
+                .map(issued -> new AuthResponse(generateTokenForUser(issued.user()), issued.rawToken()));
+    }
+
+    public void logout(String refreshToken) {
+        refreshTokenService.revoke(refreshToken);
+    }
+
+    private AuthResponse startSession(User user) {
+        return new AuthResponse(generateTokenForUser(user), refreshTokenService.issue(user));
     }
 
     private void sendFirstLoginNotificationIfNeeded(User user) {
@@ -171,9 +196,16 @@ public class AuthService {
             return;
         }
 
+        // A welcome email is never worth losing a signup. If the broker is down,
+        // the flag stays unset and the next login tries again.
+        try {
+            notificationService.sendFirstLoginWelcomeEmail(user);
+        } catch (AmqpException e) {
+            log.warn("Welcome email not queued for user {}: {}", user.getUsername(), e.getMessage());
+            return;
+        }
         user.setFirstLoginNotificationSent(true);
         userRepository.save(user);
-        notificationService.sendFirstLoginWelcomeEmail(user);
     }
 
     private GoogleIdToken.Payload verifyGoogleCredential(String credential) {

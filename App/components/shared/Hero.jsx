@@ -258,12 +258,12 @@ function HeroSection() {
 
           {/* Right actions */}
           <div className="flex items-center gap-3">
-            <Link href="/login">
+            <Link href={isLoggedIn ? "/dashboard" : "/login"}>
               <Button
                 variant="ghost"
                 className="h-9 rounded-full px-4 text-sm font-medium text-zinc-300 hover:bg-white/5 hover:text-white"
               >
-                Sign In
+                {isLoggedIn ? "Dashboard" : "Sign In"}
               </Button>
             </Link>
             <Button

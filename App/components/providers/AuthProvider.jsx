@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { getToken, onSessionEnded, revokeSession, saveToken } from "@/lib/session";
 
 const AuthContext = createContext();
 
@@ -11,12 +12,13 @@ export const AuthProvider = ({ children }) => {
   const router = useRouter();
 
   useEffect(() => {
-    // Hydrate auth state from storage once on app start.
-    const storedToken = localStorage.getItem("token");
-    if (storedToken) {
-      setToken(storedToken);
-    }
-    setLoading(false);
+    // Hydrate auth state once on app start, renewing an expired token first. If it
+    // can't be renewed the user is logged out, so Sign In reaches the login page.
+    const stopListening = onSessionEnded(() => setToken(null));
+    getToken()
+      .then(setToken)
+      .finally(() => setLoading(false));
+    return stopListening;
   }, []);
 
   /**
@@ -25,14 +27,13 @@ export const AuthProvider = ({ children }) => {
    * never double-navigate.
    */
   const login = (newToken, redirectTo = "/onboarding") => {
-    localStorage.setItem("token", newToken);
+    saveToken(newToken);
     setToken(newToken);
     router.replace(redirectTo);
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    setToken(null);
+  const logout = async () => {
+    await revokeSession();
     router.replace("/login");
   };
 

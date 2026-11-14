@@ -40,6 +40,7 @@ class GoogleAuthConfigurationTest {
             .withBean(AuthenticationManager.class, () -> mock(AuthenticationManager.class))
             .withBean(NotificationService.class, () -> mock(NotificationService.class))
             .withBean(OrganizationService.class, () -> mock(OrganizationService.class))
+            .withBean(RefreshTokenService.class, () -> mock(RefreshTokenService.class))
             .withUserConfiguration(AuthService.class);
 
     @Test
